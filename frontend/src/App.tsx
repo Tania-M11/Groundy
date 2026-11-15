@@ -3,6 +3,8 @@ import { useEffect } from 'react'
 import LandingPage from './features/landing/LandingPage'
 import ComingSoonPage from './features/landing/ComingSoonPage'
 import EstiloPage from './features/estilo/EstiloPage'
+import FarmLayout from './features/finca/FarmLayout'
+import { HomePage, MapPage, CropsPage, HistoryPage, ProfilePage } from './features/finca/pages'
 
 /** Al navegar a una ruta con #ancla, desplaza hasta la sección; si no, sube al inicio. */
 function ScrollManager({ children }: { children: React.ReactNode }) {
@@ -22,8 +24,18 @@ const conScroll = (el: React.ReactNode) => <ScrollManager>{el}</ScrollManager>
 const router = createBrowserRouter([
   { path: '/', element: conScroll(<LandingPage />) },
   { path: '/estilo', element: conScroll(<EstiloPage />) },
-  // Se construyen en los pasos siguientes: Mi finca (F2–F5, F8), Explorar (F6), Datos y métodos (F7).
-  { path: '/finca/*', element: conScroll(<ComingSoonPage />) },
+  {
+    path: '/finca',
+    element: conScroll(<FarmLayout />),
+    children: [
+      { index: true, element: <HomePage /> },
+      { path: 'mapa', element: <MapPage /> },
+      { path: 'cultivos', element: <CropsPage /> },
+      { path: 'historial', element: <HistoryPage /> },
+      { path: 'perfil', element: <ProfilePage /> },
+    ],
+  },
+  // Pendientes: Explorar (F6) y Datos y métodos (F7).
   { path: '/explorar', element: conScroll(<ComingSoonPage />) },
   { path: '*', element: conScroll(<ComingSoonPage />) },
 ])
