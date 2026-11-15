@@ -1,0 +1,50 @@
+name: Sync backend from team repo
+
+# Trae a este repositorio (Tania-M11/Groundy) los cambios que el equipo sube al main de
+# HACK29C/groundy. Solo lee de ese repo: nunca escribe en él.
+# El backend vive en backend/ y el frontend en frontend/, así que la fusión normalmente es limpia.
+# Si algún día hay conflicto, el job falla y no cambia nada: se resuelve a mano con
+#   git fetch equipo && git merge equipo/main
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # cada 30 minutos
+  workflow_dispatch: # botón "Run workflow" en la pestaña Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-backend
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch team repo
+        run: |
+          git remote add equipo https://github.com/HACK29C/groundy.git
+          git fetch --no-tags equipo main
+
+      - name: Merge team main into our main
+        id: merge
+        run: |
+          git config user.name "groundy-sync[bot]"
+          git config user.email "groundy-sync@users.noreply.github.com"
+          if git merge-base --is-ancestor equipo/main HEAD; then
+            echo "Sin cambios nuevos del backend."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git merge --no-edit -m "Sync: backend del equipo ($(git rev-parse --short equipo/main))" equipo/main
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push
+        if: steps.merge.outputs.changed == 'true'
+        run: git push origin HEAD:main

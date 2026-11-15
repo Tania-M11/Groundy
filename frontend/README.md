@@ -36,14 +36,19 @@ frontend/
     └── styles/     design tokens (tokens.css)
 ```
 
-## Working with the backend branch
+## Backend updates
 
-This frontend lives on the `frontend` branch, created from the team repository's `main`, so it always has the
-backend next to it. When the backend team updates `main`:
+This repository (`Tania-M11/Groundy`) contains the team backend from `HACK29C/groundy` in `backend/`.
+The workflow `.github/workflows/sync-backend.yml` merges the team's `main` into ours every 30 minutes
+(or on demand from the Actions tab). It only reads from the team repository and never writes to it.
+
+To bring the latest backend locally right away:
 
 ```bash
-git fetch equipo
-git merge equipo/main      # brings the latest backend into the frontend branch
+git pull               # our main, already synced by the workflow
+# or, without waiting for the workflow:
+git fetch equipo && git merge equipo/main
 ```
 
-Remotes used: `equipo` → github.com/HACK29C/groundy · `origin` → github.com/Tania-M11/Groundy (GitHub Pages deploy).
+Remotes: `origin` → github.com/Tania-M11/Groundy (our repo, GitHub Pages deploy) ·
+`equipo` → github.com/HACK29C/groundy (read only for us).
