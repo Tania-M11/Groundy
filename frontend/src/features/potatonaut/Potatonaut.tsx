@@ -21,7 +21,7 @@ export function PotatonautFab() {
       type="button"
       onClick={openChat}
       aria-label={d.open}
-      className="group fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 grid size-16 place-items-center rounded-full bg-papel shadow-flota ring-4 ring-casco transition hover:scale-105 lg:right-8 lg:bottom-8 lg:size-[4.5rem]"
+      className="brillo-fab group fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 grid size-16 place-items-center rounded-full border-[3px] border-papel bg-papel transition hover:scale-105 lg:right-8 lg:bottom-8 lg:size-[4.5rem]"
     >
       <img src="/brand/potatonaut-128.webp" alt="" className="h-12 w-auto transition group-hover:-rotate-6 lg:h-14" />
     </button>

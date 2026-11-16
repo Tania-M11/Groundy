@@ -5,7 +5,7 @@ import { useDict } from '../../i18n/useDict'
 import { SiteNav } from '../landing/SiteNav'
 import { useAnalisis } from '../../data/analysis'
 import { geolocateControl, potatoMarker } from './mapCore'
-import { useMapa, LayerPicker, LensToggle, Sheet } from './MapWidgets'
+import { useMapa, LayerPicker, LensToggle, Sheet, DESPUES_PANEL } from './MapWidgets'
 import { AnalysisPanel } from '../analisis/AnalysisPanel'
 import { PotatonautFab, PotatonautPanel } from '../potatonaut/Potatonaut'
 import type { LonLat } from '../../lib/geo'
@@ -35,7 +35,13 @@ export default function ExplorePage() {
   useEffect(() => {
     if (!map) return
     marker.current?.remove()
-    if (punto) marker.current = potatoMarker(punto).addTo(map)
+    if (punto) {
+      marker.current = potatoMarker(punto).addTo(map)
+      // Que el punto quede a la vista: a la derecha del panel en escritorio, arriba de la hoja en móvil.
+      const escritorio = window.matchMedia('(min-width: 1024px)').matches
+      const alto = map.getContainer().clientHeight
+      map.easeTo({ center: punto, padding: escritorio ? { left: 500, top: 0, right: 0, bottom: 0 } : { bottom: Math.round(alto * 0.6), top: 0, left: 0, right: 0 }, duration: 700 })
+    } else map.setPadding({ left: 0, top: 0, right: 0, bottom: 0 })
   }, [map, punto])
 
   useContextoChat(punto ? { lat: punto[1], lon: punto[0] } : null)
@@ -49,7 +55,7 @@ export default function ExplorePage() {
         <div className="relative h-full w-full overflow-hidden">
           <div ref={ref} className="h-full w-full" />
 
-          <div className="absolute top-3 left-3 z-10 flex flex-wrap items-start gap-2 lg:top-4 lg:left-4">
+          <div className={`absolute top-3 left-3 z-10 flex flex-wrap items-start gap-2 lg:top-4 ${punto ? DESPUES_PANEL : 'lg:left-4'}`}>
             <LayerPicker map={map} />
             <LensToggle map={map} center={punto} />
           </div>

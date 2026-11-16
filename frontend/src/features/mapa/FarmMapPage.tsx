@@ -14,7 +14,7 @@ import { esActivo } from '../../data/registros'
 import { useContextoChat } from '../../app/uiStore'
 import { formatArea, formatLen, medir, openRing, polygonFromRing, type LonLat } from '../../lib/geo'
 import { geolocateControl, setData } from './mapCore'
-import { useMapa, LayerPicker, LensToggle, Sheet } from './MapWidgets'
+import { useMapa, LayerPicker, LensToggle, Sheet, DESPUES_PANEL } from './MapWidgets'
 import { AnalysisPanel } from '../analisis/AnalysisPanel'
 
 type Modo = 'idle' | 'dibujo' | 'gps' | 'confirmar'
@@ -197,13 +197,30 @@ export default function FarmMapPage() {
   const cultivoActivo = ciclosParcela?.find(esActivo)?.cultivoId
   useContextoChat(parcela ? { lat: parcela.centroide[1], lon: parcela.centroide[0], lugar: parcela.nombre, cultivoId: cultivoActivo } : null)
   const centroLente: LonLat | null = parcela ? parcela.centroide : null
+  const panelAbierto = (modo === 'idle' && !!parcela) || modo === 'confirmar'
+
+  /* Al abrir una parcela, encuadrarla en la parte visible del mapa (a la derecha del panel en escritorio, arriba en móvil). */
+  useEffect(() => {
+    if (!map || !parcela) return
+    const ring = parcela.geom.coordinates[0]
+    const xs = ring.map((c) => c[0])
+    const ys = ring.map((c) => c[1])
+    const escritorio = window.matchMedia('(min-width: 1024px)').matches
+    const alto = map.getContainer().clientHeight
+    map.fitBounds([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], {
+      padding: escritorio ? { top: 90, bottom: 60, left: 520, right: 90 } : { top: 70, bottom: Math.round(alto * 0.62), left: 40, right: 40 },
+      maxZoom: 16.5,
+      duration: 800,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, parcela?.id])
 
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div ref={ref} className="h-full w-full" />
 
       {/* Controles superiores */}
-      <div className="absolute top-3 left-3 z-10 flex flex-wrap items-start gap-2 lg:top-4 lg:left-4">
+      <div className={`absolute top-3 left-3 z-10 flex flex-wrap items-start gap-2 lg:top-4 ${panelAbierto ? DESPUES_PANEL : 'lg:left-4'}`}>
         <LayerPicker map={map} />
         <LensToggle map={map} center={centroLente} />
         <div className="relative">
@@ -225,7 +242,6 @@ export default function FarmMapPage() {
                     onClick={() => {
                       setLista(false)
                       setSel(p.id ?? null)
-                      map?.flyTo({ center: p.centroide, zoom: 16 })
                     }}
                   >
                     <span className="block font-bold text-bosque">{p.nombre}</span>
@@ -357,14 +373,16 @@ function FichaParcela({ parcela, onClose, onDelete }: { parcela: Parcela; onClos
         </span>
       }
       onClose={onClose}
+      actions={
+        <Link
+          to={`/finca/cultivos?nuevo=1&parcela=${parcela.id}`}
+          className="inline-flex items-center gap-2 rounded-full bg-bosque px-5 py-2.5 text-sm font-bold text-crema transition hover:bg-bosque-700"
+        >
+          <Plant size={18} weight="bold" aria-hidden />
+          {t.registerCrop}
+        </Link>
+      }
     >
-      <Link
-        to={`/finca/cultivos?nuevo=1&parcela=${parcela.id}`}
-        className="mb-5 flex items-center justify-center gap-2 rounded-full bg-bosque px-6 py-3 lg:inline-flex font-bold text-crema shadow-flota transition hover:bg-bosque-700"
-      >
-        <Plant size={20} weight="bold" aria-hidden />
-        {t.registerCrop}
-      </Link>
       <AnalysisPanel estado={estado} areaM2={parcela.areaM2} />
       <button onClick={onDelete} className="mt-6 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-arcilla hover:bg-arcilla-suave">
         <Trash size={18} weight="bold" aria-hidden />

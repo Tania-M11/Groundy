@@ -118,3 +118,25 @@
     }
   }
 }
+
+/* Botón de Potatonaut: borde verde con un brillo suave que respira, para que se vea sobre el mapa y las fotos. */
+.brillo-fab {
+  box-shadow:
+    0 0 0 2px var(--color-pradera),
+    0 0 18px 3px rgb(122 178 42 / 0.45),
+    0 10px 24px -10px rgb(14 59 35 / 0.45);
+  animation: brillo-fab 2.8s ease-in-out infinite;
+}
+@keyframes brillo-fab {
+  50% {
+    box-shadow:
+      0 0 0 2px var(--color-pradera),
+      0 0 26px 6px rgb(122 178 42 / 0.6),
+      0 10px 24px -10px rgb(14 59 35 / 0.45);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brillo-fab {
+    animation: none;
+  }
+}

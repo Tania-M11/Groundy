@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Map as MLMap } from 'maplibre-gl'
-import { StackSimple, MagnifyingGlassPlus, X, ArrowsOut, ArrowsIn } from '@phosphor-icons/react'
+import { StackSimple, MagnifyingGlassPlus, X } from '@phosphor-icons/react'
 import { useDict } from '../../i18n/useDict'
 import { createMap, GIBS, setData, setGibs, type GibsKey } from './mapCore'
 import { huella, huellasFC, type Huella, type LonLat } from '../../lib/geo'
@@ -126,36 +126,30 @@ export function LensToggle({ map, center }: { map: MLMap | null; center: LonLat 
 /** Hoja de detalle: inferior en móvil, lateral izquierda en escritorio. */
 /**
  * Ficha sobre el mapa.
- * Móvil: hoja inferior. Escritorio: panel a todo el ancho en la parte baja (el mapa sigue visible arriba)
- * y un botón para verla en grande. El contenido usa consultas de contenedor para repartirse en columnas.
+ * Móvil: hoja inferior que se desliza. Escritorio: panel lateral izquierdo de alto completo
+ * (el mapa queda visible a la derecha); el contenido se recorre deslizando dentro del panel.
  */
-export function Sheet({ title, subtitle, onClose, children }: { title: ReactNode; subtitle?: ReactNode; onClose: () => void; children: ReactNode }) {
+export const ANCHO_PANEL = 'lg:w-[28rem] xl:w-[30rem]'
+export const DESPUES_PANEL = 'lg:left-[30rem] xl:left-[32rem]'
+
+export function Sheet({ title, subtitle, actions, onClose, children }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; onClose: () => void; children: ReactNode }) {
   const t = useDict().mapa
-  const [grande, setGrande] = useState(false)
   return (
-    <aside
-      className={`absolute inset-x-0 bottom-0 z-20 flex max-h-[72%] flex-col rounded-t-hoja bg-papel shadow-flota lg:inset-x-4 lg:bottom-4 lg:rounded-hoja ${
-        grande ? 'lg:top-4 lg:max-h-none' : 'lg:max-h-[60%]'
-      }`}
-    >
+    <aside className={`absolute inset-x-0 bottom-0 z-20 flex max-h-[78%] flex-col rounded-t-hoja bg-papel shadow-flota lg:inset-x-auto lg:top-4 lg:bottom-4 lg:left-4 lg:max-h-none lg:rounded-hoja ${ANCHO_PANEL}`}>
       <div className="mx-auto mt-2.5 h-1.5 w-12 rounded-full bg-borde lg:hidden" aria-hidden />
-      <header className="flex items-start gap-3 px-5 pt-3 pb-3 lg:px-8 lg:pt-6">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-2xl leading-tight lg:text-3xl">{title}</h2>
-          {subtitle && <div className="mt-1 text-sm text-gris">{subtitle}</div>}
+      <header className="px-5 pt-3 pb-3 lg:px-6 lg:pt-6">
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-2xl leading-tight lg:text-3xl">{title}</h2>
+            {subtitle && <div className="mt-1 text-sm text-gris">{subtitle}</div>}
+          </div>
+          <button onClick={onClose} aria-label={t.close} className="grid size-10 shrink-0 place-items-center rounded-full bg-niebla text-bosque">
+            <X size={20} weight="bold" />
+          </button>
         </div>
-        <button
-          onClick={() => setGrande((g) => !g)}
-          className="hidden min-h-10 items-center gap-2 rounded-full border-2 border-borde px-4 text-sm font-bold text-bosque transition hover:border-bosque lg:flex"
-        >
-          {grande ? <ArrowsIn size={18} weight="bold" aria-hidden /> : <ArrowsOut size={18} weight="bold" aria-hidden />}
-          {grande ? t.collapse : t.expand}
-        </button>
-        <button onClick={onClose} aria-label={t.close} className="grid size-10 shrink-0 place-items-center rounded-full bg-niebla text-bosque">
-          <X size={20} weight="bold" />
-        </button>
+        {actions && <div className="mt-3">{actions}</div>}
       </header>
-      <div className="@container flex-1 overflow-y-auto px-5 pb-6 lg:px-8 lg:pb-8">{children}</div>
+      <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-28 [scrollbar-width:thin] lg:px-6 lg:pb-6">{children}</div>
     </aside>
   )
 }
