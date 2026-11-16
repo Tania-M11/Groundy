@@ -450,6 +450,30 @@ export function MeetPotatonaut() {
 }
 
 /* ───────────── Equipo + llamado final ───────────── */
+/** Integrantes en el orden de `d.team.members`. La foto va en /team/<foto>.webp (cuadrada); sin ella se ven las iniciales. */
+const EQUIPO = [
+  { nombre: 'Tania Milena Cuastuza Guaquez', foto: 'tania' },
+  { nombre: 'Jhon Alvaro Cuastuza Guaquez', foto: 'jhon' },
+  { nombre: 'Jean Lucas Cuasquer Criollo', foto: 'jean' },
+  { nombre: 'Camilo Alexander Ceron Benavides', foto: 'camilo' },
+  { nombre: 'Santiago Andres Sinza Goyes', foto: 'santiago' },
+]
+const FONDOS = ['bg-brote', 'bg-agua', 'bg-hoja', 'bg-niebla', 'bg-brote']
+
+function FotoIntegrante({ nombre, foto, fondo }: { nombre: string; foto: string; fondo: string }) {
+  const [falta, setFalta] = useState(false)
+  const iniciales = nombre.split(' ').filter((_, i) => i === 0 || i === 2).map((p) => p[0]).join('')
+  return (
+    <div className={`relative grid size-24 shrink-0 place-items-center overflow-hidden rounded-full ring-4 ring-papel shadow-suave sm:size-32 md:size-36 ${fondo}`}>
+      {falta ? (
+        <span aria-hidden className="font-display text-3xl text-bosque/70 sm:text-4xl">{iniciales}</span>
+      ) : (
+        <img src={`/team/${foto}.webp`} alt="" loading="lazy" className="size-full object-cover" onError={() => setFalta(true)} />
+      )}
+    </div>
+  )
+}
+
 export function TeamAndCta() {
   const d = useDict()
   return (
@@ -458,6 +482,22 @@ export function TeamAndCta() {
         <h2 className="text-3xl md:text-[2.75rem]">{d.team.title}</h2>
         <p className="mt-4 text-lg text-gris">{d.team.lead}</p>
       </div>
+
+      <ul className="mt-12 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-5">
+        {EQUIPO.map((p, i) => {
+          const m = d.team.members[i]
+          return (
+            <li key={p.foto} className="flex items-center gap-5 sm:flex-col sm:text-center">
+              <FotoIntegrante nombre={p.nombre} foto={p.foto} fondo={FONDOS[i]} />
+              <div className="min-w-0">
+                <h3 className="font-sans text-lg leading-snug font-bold text-bosque text-balance">{p.nombre}</h3>
+                <p className="mt-1 text-sm font-semibold text-pradera-osc">{m.study}</p>
+                <p className="mt-2 text-sm leading-relaxed text-gris">{m.skills}</p>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
 
       <div className="relative mt-14 overflow-hidden rounded-hoja bg-cielo px-7 py-10 md:px-12 md:py-14">
         <div aria-hidden className="absolute -right-16 -bottom-24 hidden size-72 rounded-full bg-pradera/80 sm:block" />

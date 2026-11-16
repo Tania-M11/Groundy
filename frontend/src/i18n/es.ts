@@ -217,6 +217,13 @@ export const es: Dict = {
   team: {
     title: 'Hecho por Potatonauts',
     lead: 'Un equipo de Ipiales, Colombia, que responde al reto Field Shift del NASA Space Apps Challenge 2026.',
+    members: [
+      { study: 'Estudiante de Ingeniería de Sistemas', skills: 'Desarrollo fullstack · IA y Machine Learning · Investigación' },
+      { study: 'Profesional en Comercio Internacional', skills: 'Desarrollo de software · Análisis de datos · Investigación en Agricultura 4.0' },
+      { study: 'Estudiante de Ingeniería de Sistemas', skills: 'Desarrollo fullstack · Ingeniería de datos' },
+      { study: 'Estudiante de Ingeniería de Sistemas', skills: 'Desarrollo fullstack · Análisis e ingeniería de datos' },
+      { study: 'Estudiante de Ingeniería de Sistemas', skills: 'Desarrollo fullstack · Desarrollo de apps' },
+    ],
   },
   cta: {
     title: 'Empieza con una parcela',

@@ -217,6 +217,13 @@ export const en = {
   team: {
     title: 'Made by Potatonauts',
     lead: 'A team from Ipiales, Colombia, answering the Field Shift challenge of the NASA Space Apps Challenge 2026.',
+    members: [
+      { study: 'Systems Engineering student', skills: 'Fullstack development · AI & Machine Learning · Research' },
+      { study: 'International Trade professional', skills: 'Software development · Data analysis · Agriculture 4.0 research' },
+      { study: 'Systems Engineering student', skills: 'Fullstack development · Data engineering' },
+      { study: 'Systems Engineering student', skills: 'Fullstack development · Data analysis & engineering' },
+      { study: 'Systems Engineering student', skills: 'Fullstack development · App development' },
+    ],
   },
   cta: {
     title: 'Start with one plot',
