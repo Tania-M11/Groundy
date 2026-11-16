@@ -23,6 +23,13 @@ The **Groundy logo** was generated using **ChatGPT (OpenAI)**. AI assistance was
 
 The logo was subsequently incorporated into the application's visual identity and interface.
 
+### Reference materials provided to Claude Code
+
+The following materials were provided to Claude Code as reference inputs for the software evaluation and interface refinement process:
+
+- **UI/UX design references (Canva):** https://canva.link/8wb20sqmm4y8sa8
+- **Technical planning and functional specifications (Microsoft Word):** [Insert online Word document link]
+
 ## 3. AI-assisted software evaluation and interface refinement
 
 **Claude Code (Anthropic)** was used during the software evaluation and refinement phase. Its involvement was based on the existing project structure and a technical planning document prepared by the Potatonauts team.
