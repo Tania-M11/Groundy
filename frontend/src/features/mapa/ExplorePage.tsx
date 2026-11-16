@@ -5,11 +5,12 @@ import { useDict } from '../../i18n/useDict'
 import { SiteNav } from '../landing/SiteNav'
 import { useAnalisis } from '../../data/analysis'
 import { geolocateControl, potatoMarker } from './mapCore'
-import { useMapa, LayerPicker, LensToggle, Sheet, DESPUES_PANEL } from './MapWidgets'
+import { useMapa, LayerPicker, LensToggle, Sheet, DESPUES_PANEL, CargandoMapa } from './MapWidgets'
+import { useEncuadre } from './encuadre'
 import { AnalysisPanel } from '../analisis/AnalysisPanel'
 import { PotatonautFab, PotatonautPanel } from '../potatonaut/Potatonaut'
 import type { LonLat } from '../../lib/geo'
-import { useContextoChat } from '../../app/uiStore'
+import { useContextoChat, useUi } from '../../app/uiStore'
 
 /** Explorar (público, sin cuenta): tocar el mapa o usar la ubicación → análisis del punto con su procedencia. */
 export default function ExplorePage() {
@@ -35,14 +36,20 @@ export default function ExplorePage() {
   useEffect(() => {
     if (!map) return
     marker.current?.remove()
-    if (punto) {
-      marker.current = potatoMarker(punto).addTo(map)
-      // Que el punto quede a la vista: a la derecha del panel en escritorio, arriba de la hoja en móvil.
-      const escritorio = window.matchMedia('(min-width: 1024px)').matches
-      const alto = map.getContainer().clientHeight
-      map.easeTo({ center: punto, padding: escritorio ? { left: 500, top: 0, right: 0, bottom: 0 } : { bottom: Math.round(alto * 0.6), top: 0, left: 0, right: 0 }, duration: 700 })
-    } else map.setPadding({ left: 0, top: 0, right: 0, bottom: 0 })
+    if (punto) marker.current = potatoMarker(punto).addTo(map)
+    else map.setPadding({ left: 0, top: 0, right: 0, bottom: 0 })
   }, [map, punto])
+
+  // Que el punto quede a la vista fuera de la ficha (medida real), también al girar o redimensionar.
+  useEncuadre(map, punto ? { centro: punto } : null, punto ? punto.join(',') : null)
+
+  // En el teléfono la tarjeta de bienvenida ocupa la parte baja: el botón flotante se oculta mientras se ve.
+  const setHojaAbierta = useUi((s) => s.setHojaAbierta)
+  useEffect(() => {
+    if (punto) return
+    setHojaAbierta(true)
+    return () => setHojaAbierta(false)
+  }, [punto, setHojaAbierta])
 
   useContextoChat(punto ? { lat: punto[1], lon: punto[0] } : null)
   const objetivo = useMemo(() => (punto ? { tipo: 'punto' as const, centro: punto } : null), [punto])
@@ -54,8 +61,9 @@ export default function ExplorePage() {
       <main className="relative h-[100svh] pt-16 md:pt-20">
         <div className="relative h-full w-full overflow-hidden">
           <div ref={ref} className="h-full w-full" />
+          <CargandoMapa visible={!map} />
 
-          <div className={`absolute top-3 left-3 z-10 flex flex-wrap items-start gap-2 lg:top-4 ${punto ? DESPUES_PANEL : 'lg:left-4'}`}>
+          <div className={`absolute top-3 right-14 left-3 z-10 flex flex-wrap items-start gap-2 md:right-auto lg:top-4 ${punto ? DESPUES_PANEL : 'lg:left-4'}`}>
             <LayerPicker map={map} />
             <LensToggle map={map} center={punto} />
           </div>

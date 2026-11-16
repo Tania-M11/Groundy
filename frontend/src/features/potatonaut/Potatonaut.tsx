@@ -14,14 +14,14 @@ const EJEMPLO = { lat: 0.8305, lon: -77.6395 }
 /** Botón flotante: visible en «Mi finca» y Explorar, encima de la barra inferior en móvil. */
 export function PotatonautFab() {
   const d = useDict().app.potatonaut
-  const { chatOpen, openChat } = useUi()
+  const { chatOpen, openChat, hojaAbierta } = useUi()
   if (chatOpen) return null
   return (
     <button
       type="button"
       onClick={openChat}
       aria-label={d.open}
-      className="brillo-fab group fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 grid size-16 place-items-center rounded-full border-[3px] border-papel bg-papel transition hover:scale-105 lg:right-8 lg:bottom-8 lg:size-[4.5rem]"
+      className={`${hojaAbierta ? 'max-md:hidden' : ''} brillo-fab group fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 grid size-16 place-items-center rounded-full border-[3px] border-papel bg-papel transition hover:scale-105 lg:right-8 lg:bottom-8 lg:size-[4.5rem]`}
     >
       <img src="/brand/potatonaut-128.webp" alt="" className="h-12 w-auto transition group-hover:-rotate-6 lg:h-14" />
     </button>

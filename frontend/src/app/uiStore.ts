@@ -26,6 +26,9 @@ export type ContextoChat = { lat: number; lon: number; lugar?: string; cultivoId
 
 type UiState = {
   chatOpen: boolean
+  /** Hay una ficha abierta sobre el mapa: en móvil el botón flotante de Potatonaut se oculta para no taparla. */
+  hojaAbierta: boolean
+  setHojaAbierta: (v: boolean) => void
   messages: ChatMessage[]
   conversacion?: string
   esperando: boolean
@@ -44,6 +47,8 @@ let nextId = 1
 
 export const useUi = create<UiState>((set) => ({
   chatOpen: false,
+  hojaAbierta: false,
+  setHojaAbierta: (hojaAbierta) => set({ hojaAbierta }),
   messages: [],
   esperando: false,
   contexto: null,

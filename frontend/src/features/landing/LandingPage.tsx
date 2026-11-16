@@ -1,6 +1,6 @@
 import { SiteNav } from './SiteNav'
 import { Hero } from './Hero'
-import { Challenge, Platform, ScaleLens, DataSources, HowItWorks, MeetPotatonaut, TeamAndCta } from './Sections'
+import { GlobeSection, EdgeSection, Platform, ScaleLens, HowItWorks, MeetPotatonaut, TeamAndCta } from './Sections'
 import { SiteFooter } from './SiteFooter'
 
 export default function LandingPage() {
@@ -9,10 +9,10 @@ export default function LandingPage() {
       <SiteNav overHero />
       <main>
         <Hero />
-        <Challenge />
+        <GlobeSection />
+        <EdgeSection />
         <Platform />
         <ScaleLens />
-        <DataSources />
         <HowItWorks />
         <MeetPotatonaut />
         <TeamAndCta />

@@ -91,3 +91,51 @@ export function partesEnCeldaPower(areaM2: number, center: LonLat) {
   const cellM2 = turfArea({ type: 'Feature', properties: {}, geometry: cell })
   return { cellKm2: cellM2 / 1e6, partes: Math.round(cellM2 / Math.max(areaM2, 1)) }
 }
+
+/* ───────── Validación del lindero antes de guardar y analizar ───────── */
+// Límites prácticos: por debajo de ~20 m² no hay ni un píxel útil; por encima de 5 000 ha el análisis
+// dentro de la finca (Sentinel-2 a 10 m) se vuelve demasiado lento para una consulta en vivo.
+export const AREA_MIN_M2 = 20
+export const AREA_MAX_M2 = 5_000 * 10_000
+
+export type ProblemaLindero = 'pocos' | 'cruzado' | 'pequena' | 'grande'
+
+/** Quita el cierre y los vértices repetidos seguidos (toques dobles, saltos nulos del GPS). */
+export function limpiarAnillo(ring: LonLat[]): LonLat[] {
+  const EPS = 1e-7 // ~1 cm
+  const igual = (a: LonLat, b: LonLat) => Math.abs(a[0] - b[0]) < EPS && Math.abs(a[1] - b[1]) < EPS
+  const out: LonLat[] = []
+  for (const p of ring) if (!out.length || !igual(out[out.length - 1], p)) out.push(p)
+  while (out.length > 1 && igual(out[0], out[out.length - 1])) out.pop()
+  return out
+}
+
+function cruzan(a: LonLat, b: LonLat, c: LonLat, d: LonLat) {
+  const o = (p: LonLat, q: LonLat, r: LonLat) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]))
+  return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0
+}
+
+/** ¿Algún par de lados no contiguos se cruza? (anillo abierto) */
+export function seCruza(ring: LonLat[]) {
+  const n = ring.length
+  for (let i = 0; i < n; i++) {
+    const [a, b] = [ring[i], ring[(i + 1) % n]]
+    for (let j = i + 2; j < n; j++) {
+      if (i === 0 && j === n - 1) continue // lados vecinos por el cierre
+      if (cruzan(a, b, ring[j], ring[(j + 1) % n])) return true
+    }
+  }
+  return false
+}
+
+/** Limpia el lindero y dice si se puede guardar. Devuelve el polígono limpio (cerrado). */
+export function validarLindero(poly: Polygon): { poly: Polygon; problema?: ProblemaLindero } {
+  const anillo = limpiarAnillo(poly.coordinates[0] as LonLat[])
+  if (anillo.length < 3) return { poly, problema: 'pocos' }
+  const limpio = polygonFromRing(anillo)
+  if (seCruza(anillo)) return { poly: limpio, problema: 'cruzado' }
+  const m2 = turfArea({ type: 'Feature', properties: {}, geometry: limpio })
+  if (m2 < AREA_MIN_M2) return { poly: limpio, problema: 'pequena' }
+  if (m2 > AREA_MAX_M2) return { poly: limpio, problema: 'grande' }
+  return { poly: limpio }
+}

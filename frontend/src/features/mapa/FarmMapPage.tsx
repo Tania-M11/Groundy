@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { TerraDraw, TerraDrawPolygonMode, TerraDrawSelectMode } from 'terra-draw'
+import { TerraDraw, TerraDrawPolygonMode, TerraDrawSelectMode, ValidateNotSelfIntersecting } from 'terra-draw'
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter'
 import type { Feature, FeatureCollection, Polygon } from 'geojson'
 import type { MapMouseEvent } from 'maplibre-gl'
@@ -12,9 +12,10 @@ import { db, type Parcela } from '../../data/db'
 import { useAnalisis } from '../../data/analysis'
 import { esActivo } from '../../data/registros'
 import { useContextoChat } from '../../app/uiStore'
-import { formatArea, formatLen, medir, openRing, polygonFromRing, type LonLat } from '../../lib/geo'
+import { formatArea, formatLen, medir, openRing, polygonFromRing, validarLindero, type LonLat } from '../../lib/geo'
 import { geolocateControl, setData } from './mapCore'
-import { useMapa, LayerPicker, LensToggle, Sheet, DESPUES_PANEL } from './MapWidgets'
+import { useMapa, LayerPicker, LensToggle, Sheet, DESPUES_PANEL, CargandoMapa } from './MapWidgets'
+import { useEncuadre, bboxDe } from './encuadre'
 import { AnalysisPanel } from '../analisis/AnalysisPanel'
 
 type Modo = 'idle' | 'dibujo' | 'gps' | 'confirmar'
@@ -51,6 +52,8 @@ export default function FarmMapPage() {
       adapter: new TerraDrawMapLibreGLAdapter({ map }),
       modes: [
         new TerraDrawPolygonMode({
+          // No deja cerrar un lindero cuyos lados se cruzan (el área saldría mal).
+          validation: (f) => ValidateNotSelfIntersecting(f),
           styles: {
             fillColor: '#E49C54',
             fillOpacity: 0.3,
@@ -63,6 +66,7 @@ export default function FarmMapPage() {
           },
         }),
         new TerraDrawSelectMode({
+          validation: (f) => ValidateNotSelfIntersecting(f),
           flags: { polygon: { feature: { coordinates: { midpoints: true, draggable: true, deletable: true } } } },
           styles: {
             selectedPolygonColor: '#E49C54',
@@ -168,12 +172,16 @@ export default function FarmMapPage() {
     setModo('confirmar')
   })
 
+  // Lindero limpio (sin vértices repetidos) y revisado: lados que se cruzan, área mínima y máxima.
+  const revision = useMemo(() => (pendiente ? validarLindero(pendiente.poly) : null), [pendiente])
+  const medida = useMemo(() => (revision ? medir(revision.poly) : null), [revision])
+
   const guardar = async () => {
-    if (!pendiente) return
-    const m = medir(pendiente.poly)
+    if (!pendiente || !revision || revision.problema) return
+    const m = medir(revision.poly)
     const id = await db.parcelas.add({
       nombre: nombre.trim() || `${t.newPlot} ${(parcelas?.length ?? 0) + 1}`,
-      geom: pendiente.poly,
+      geom: revision.poly,
       areaM2: m.areaM2,
       perimetroM: m.perimetroM,
       centroide: m.centroide,
@@ -190,7 +198,6 @@ export default function FarmMapPage() {
     setSel(null)
   }
 
-  const medida = useMemo(() => (pendiente ? medir(pendiente.poly) : null), [pendiente])
   const parcela = parcelas?.find((p) => p.id === sel) ?? null
   // Potatonaut habla de la parcela abierta (y de su cultivo en curso, si lo tiene).
   const ciclosParcela = useLiveQuery(() => (parcela?.id ? db.ciclos.where('parcelaId').equals(parcela.id).toArray() : []), [parcela?.id])
@@ -199,28 +206,18 @@ export default function FarmMapPage() {
   const centroLente: LonLat | null = parcela ? parcela.centroide : null
   const panelAbierto = (modo === 'idle' && !!parcela) || modo === 'confirmar'
 
-  /* Al abrir una parcela, encuadrarla en la parte visible del mapa (a la derecha del panel en escritorio, arriba en móvil). */
-  useEffect(() => {
-    if (!map || !parcela) return
-    const ring = parcela.geom.coordinates[0]
-    const xs = ring.map((c) => c[0])
-    const ys = ring.map((c) => c[1])
-    const escritorio = window.matchMedia('(min-width: 1024px)').matches
-    const alto = map.getContainer().clientHeight
-    map.fitBounds([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], {
-      padding: escritorio ? { top: 90, bottom: 60, left: 520, right: 90 } : { top: 70, bottom: Math.round(alto * 0.62), left: 40, right: 40 },
-      maxZoom: 16.5,
-      duration: 800,
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, parcela?.id])
+  /* Encuadrar la parcela abierta (o la recién dibujada) en la parte del mapa que la ficha no tapa,
+     y reencuadrar si cambia el tamaño de la pantalla o de la ficha. */
+  useEncuadre(map, parcela ? { bbox: bboxDe(parcela.geom.coordinates[0]) } : null, modo === 'idle' && parcela?.id ? parcela.id : null)
+  useEncuadre(map, pendiente ? { bbox: bboxDe(pendiente.poly.coordinates[0]) } : null, modo === 'confirmar' && pendiente ? `nueva-${pendiente.metodo}` : null, 18)
 
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div ref={ref} className="h-full w-full" />
+      <CargandoMapa visible={!map} />
 
       {/* Controles superiores */}
-      <div className={`absolute top-3 left-3 z-10 flex flex-wrap items-start gap-2 lg:top-4 ${panelAbierto ? DESPUES_PANEL : 'lg:left-4'}`}>
+      <div className={`absolute top-3 right-14 left-3 z-10 flex flex-wrap items-start gap-2 md:right-auto lg:top-4 ${panelAbierto ? DESPUES_PANEL : 'lg:left-4'}`}>
         <LayerPicker map={map} />
         <LensToggle map={map} center={centroLente} />
         <div className="relative">
@@ -309,7 +306,7 @@ export default function FarmMapPage() {
 
       {/* Confirmar nueva parcela */}
       {modo === 'confirmar' && pendiente && medida && (
-        <Sheet title={t.newPlot} subtitle={t.method[pendiente.metodo]} onClose={cancelar}>
+        <Sheet title={t.newPlot} subtitle={t.method[pendiente.metodo]} onClose={cancelar} sobreBarra>
           <dl className="grid grid-cols-2 gap-3">
             <div className="rounded-tarjeta bg-niebla p-4">
               <dt className="text-sm text-gris">{t.area}</dt>
@@ -321,6 +318,11 @@ export default function FarmMapPage() {
             </div>
           </dl>
           <p className="mt-2 text-xs text-gris">{t.areaMethod}</p>
+          {revision?.problema && (
+            <p role="alert" className="mt-3 rounded-chip bg-arcilla-suave px-4 py-3 text-sm font-semibold text-arcilla">
+              {t.lindero[revision.problema]}
+            </p>
+          )}
           <label className="mt-5 block font-bold text-bosque">
             {t.plotName}
             <input
@@ -331,7 +333,11 @@ export default function FarmMapPage() {
             />
           </label>
           <div className="mt-5 flex flex-wrap gap-2">
-            <button onClick={guardar} className="flex items-center gap-2 rounded-full bg-bosque px-6 py-3 font-bold text-crema shadow-flota">
+            <button
+              onClick={guardar}
+              disabled={!!revision?.problema}
+              className="flex items-center gap-2 rounded-full bg-bosque px-6 py-3 font-bold text-crema shadow-flota disabled:cursor-not-allowed disabled:opacity-40"
+            >
               <Check size={18} weight="bold" aria-hidden />
               {t.save}
             </button>
@@ -366,6 +372,7 @@ function FichaParcela({ parcela, onClose, onDelete }: { parcela: Parcela; onClos
   const estado = useAnalisis(objetivo)
   return (
     <Sheet
+      sobreBarra
       title={parcela.nombre}
       subtitle={
         <span className="cifra">

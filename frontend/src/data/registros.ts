@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { nombreCultivo } from '../i18n/cultivos'
 import { db, type Ciclo, type Evento } from './db'
 import { getCultivos, type Analisis, type Cultivo, type CultivoTop } from '../lib/api'
 
@@ -75,10 +77,8 @@ export function useCatalogo() {
       .then((cs) => setCat(Object.fromEntries(cs.map((c) => [c.id, c]))))
       .catch(() => undefined)
   }, [])
-  const nombre = (id: string) => {
-    const s = cat[id]?.name_es ?? id
-    return s ? s[0].toLocaleUpperCase() + s.slice(1) : s
-  }
+  const { i18n } = useTranslation()
+  const nombre = (id: string) => nombreCultivo(id, cat[id]?.name_es, i18n.resolvedLanguage)
   return { cat, nombre, lista: Object.values(cat) }
 }
 

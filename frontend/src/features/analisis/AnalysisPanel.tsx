@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowClockwise, ArrowRight, CalendarBlank, CaretDown } from '@phosphor-icons/react'
 import { useDict } from '../../i18n/useDict'
+import { nombreCultivo } from '../../i18n/cultivos'
 import { getCultivos, type Analisis, type Cultivo } from '../../lib/api'
 import { partesEnCeldaPower } from '../../lib/geo'
 import type { useAnalisis } from '../../data/analysis'
@@ -93,7 +94,7 @@ const Chip = ({ tono = 'neutro', children }: { tono?: Tono; children: ReactNode 
 /* ───────── Panel ───────── */
 export function AnalysisPanel({ estado, areaM2 }: { estado: ReturnType<typeof useAnalisis>; areaM2?: number }) {
   const t = useDict().analisis
-  const { datos, cargando, cargandoArea, inicio, error, reintentar } = estado
+  const { datos, cargando, cargandoArea, inicio, error, errorArea, reintentar } = estado
   const [ahora, setAhora] = useState(Date.now())
   useEffect(() => {
     if (!cargando) return
@@ -119,19 +120,21 @@ export function AnalysisPanel({ estado, areaM2 }: { estado: ReturnType<typeof us
         <div>
           <p className="font-bold text-bosque">
             {t.loading}
-            {inicio && <span className="cifra ml-2 text-gris">{Math.round((ahora - inicio) / 1000)} {t.seconds}</span>}
+            {inicio && <span className="cifra ml-2 whitespace-nowrap text-gris">{Math.round((ahora - inicio) / 1000)} {t.seconds}</span>}
           </p>
           <p className="mt-1 text-sm text-gris">{t.loadingNew}</p>
         </div>
       </div>
     )
 
-  return <Resultado a={datos} areaM2={areaM2} cargandoArea={cargandoArea} />
+  return <Resultado a={datos} areaM2={areaM2} cargandoArea={cargandoArea} errorArea={errorArea} reintentar={reintentar} />
 }
 
 type Pestana = 'resumen' | 'clima' | 'cultivos' | 'parcela' | 'fuentes'
 
-function Resultado({ a, areaM2, cargandoArea }: { a: Analisis; areaM2?: number; cargandoArea: boolean }) {
+type ErrorKind = NonNullable<ReturnType<typeof useAnalisis>['error']>
+
+function Resultado({ a, areaM2, cargandoArea, errorArea, reintentar }: { a: Analisis; areaM2?: number; cargandoArea: boolean; errorArea?: ErrorKind; reintentar: () => void }) {
   const t = useDict().analisis
   const [cultivos, setCultivos] = useState<Record<string, Cultivo>>({})
   useEffect(() => {
@@ -139,8 +142,9 @@ function Resultado({ a, areaM2, cargandoArea }: { a: Analisis; areaM2?: number; 
       .then((cs) => setCultivos(Object.fromEntries(cs.map((c) => [c.id, c]))))
       .catch(() => undefined)
   }, [])
-  const nombre = (id: string) => cap(cultivos[id]?.name_es ?? id)
-  const pestanas: Pestana[] = ['resumen', 'clima', 'cultivos', ...(a.terreno || cargandoArea ? (['parcela'] as Pestana[]) : []), 'fuentes']
+  const { i18n } = useTranslation()
+  const nombre = (id: string) => nombreCultivo(id, cultivos[id]?.name_es, i18n.resolvedLanguage)
+  const pestanas: Pestana[] = ['resumen', 'clima', 'cultivos', ...(a.terreno || cargandoArea || errorArea ? (['parcela'] as Pestana[]) : []), 'fuentes']
   const [tab, setTab] = useState<Pestana>('resumen')
 
   return (
@@ -148,14 +152,14 @@ function Resultado({ a, areaM2, cargandoArea }: { a: Analisis; areaM2?: number; 
       {/* Pestañas fijas arriba mientras se desliza */}
       {/* La barra ocupa también el margen interno del panel: más ancho para las pestañas sin agrandar el panel. */}
       <div className="sticky top-0 z-10 -mx-5 bg-papel px-2 pt-1 pb-3 lg:-mx-6 lg:px-2.5">
-        <div role="tablist" className="flex gap-0.5 rounded-full bg-niebla p-1">
+        <div role="tablist" className="flex gap-0.5 overflow-x-auto rounded-full bg-niebla p-1 [scrollbar-width:none]">
           {pestanas.map((p) => (
             <button
               key={p}
               role="tab"
               aria-selected={tab === p}
               onClick={() => setTab(p)}
-              className={`min-w-0 flex-1 truncate rounded-full px-1.5 py-2 text-[0.8rem] font-bold whitespace-nowrap transition sm:text-sm ${tab === p ? 'bg-bosque text-crema shadow-suave' : 'text-bosque hover:bg-papel'}`}
+              className={`min-w-fit flex-1 rounded-full px-2.5 py-2 text-[0.8rem] font-bold whitespace-nowrap transition lg:text-sm ${tab === p ? 'bg-bosque text-crema shadow-suave' : 'text-bosque hover:bg-papel'}`}
             >
               {t.tabs[p]}
             </button>
@@ -167,7 +171,7 @@ function Resultado({ a, areaM2, cargandoArea }: { a: Analisis; areaM2?: number; 
         {tab === 'resumen' && <TabResumen a={a} nombre={nombre} irA={setTab} />}
         {tab === 'clima' && <TabClima a={a} />}
         {tab === 'cultivos' && <TabCultivos a={a} nombre={nombre} />}
-        {tab === 'parcela' && <TabParcela a={a} cargandoArea={cargandoArea} />}
+        {tab === 'parcela' && <TabParcela a={a} cargandoArea={cargandoArea} errorArea={errorArea} reintentar={reintentar} />}
         {tab === 'fuentes' && <TabFuentes a={a} areaM2={areaM2} nombre={nombre} />}
       </div>
     </div>
@@ -420,11 +424,22 @@ function TabCultivos({ a, nombre }: { a: Analisis; nombre: (id: string) => strin
 }
 
 /* ═════════ Tu parcela (dentro del lindero) ═════════ */
-function TabParcela({ a, cargandoArea }: { a: Analisis; cargandoArea: boolean }) {
+function TabParcela({ a, cargandoArea, errorArea, reintentar }: { a: Analisis; cargandoArea: boolean; errorArea?: ErrorKind; reintentar: () => void }) {
   const t = useDict().analisis
   const { n } = useNums()
   const ter = a.terreno
   if (cargandoArea && !ter) return <p className="rounded-tarjeta bg-niebla p-4 text-gris">{t.loadingArea}</p>
+  if (errorArea && !ter)
+    return (
+      <div className="rounded-tarjeta bg-arcilla-suave p-5">
+        <p className="font-semibold text-arcilla">{t.areaFailed}</p>
+        <p className="mt-1 text-sm text-arcilla">{t.errors[errorArea]}</p>
+        <button onClick={reintentar} className="mt-3 inline-flex items-center gap-2 rounded-full bg-bosque px-5 py-2.5 font-bold text-crema">
+          <ArrowClockwise size={18} weight="bold" aria-hidden />
+          {t.retry}
+        </button>
+      </div>
+    )
   const elev = ter?.elevacion_m
   const kPend = clasPendiente(ter?.pendiente_grados?.media)
   const ndvi = a.vegetacionFinca?.ndvi_sentinel2_10m?.media ?? a.vegetacionFinca?.ndvi_modis_250m?.media

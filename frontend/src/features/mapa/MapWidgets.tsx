@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Map as MLMap } from 'maplibre-gl'
-import { StackSimple, MagnifyingGlassPlus, X } from '@phosphor-icons/react'
+import { StackSimple, MagnifyingGlassPlus, X, CaretUp, CaretDown } from '@phosphor-icons/react'
+import { useUi } from '../../app/uiStore'
 import { useDict } from '../../i18n/useDict'
 import { createMap, GIBS, setData, setGibs, type GibsKey } from './mapCore'
 import { huella, huellasFC, type Huella, type LonLat } from '../../lib/geo'
@@ -42,7 +43,7 @@ export function LayerPicker({ map }: { map: MLMap | null }) {
         }`}
       >
         <StackSimple size={18} weight="bold" aria-hidden />
-        {capa ? t.gibs[capa] : t.layers}
+        <span className={capa ? '' : 'max-sm:sr-only'}>{capa ? t.gibs[capa] : t.layers}</span>
       </button>
       {open && (
         <div className="absolute top-full left-0 z-20 mt-2 w-72 rounded-tarjeta bg-papel p-4 shadow-flota">
@@ -103,7 +104,7 @@ export function LensToggle({ map, center }: { map: MLMap | null; center: LonLat 
         }`}
       >
         <MagnifyingGlassPlus size={18} weight="bold" aria-hidden />
-        {t.lens}
+        <span className="max-sm:sr-only">{t.lens}</span>
       </button>
       {on && (
         <div className="absolute top-full left-0 z-10 mt-2 w-72 rounded-tarjeta bg-papel p-4 text-sm shadow-flota">
@@ -123,33 +124,88 @@ export function LensToggle({ map, center }: { map: MLMap | null; center: LonLat 
   )
 }
 
-/** Hoja de detalle: inferior en móvil, lateral izquierda en escritorio. */
+/** Velo mientras el mapa descarga su estilo y las primeras imágenes. */
+export function CargandoMapa({ visible }: { visible: boolean }) {
+  if (!visible) return null
+  return (
+    <div className="absolute inset-0 z-[5] grid place-items-center bg-niebla" role="status">
+      <img src="/brand/potatonaut-128.webp" alt="" className="h-14 animate-bounce [animation-duration:2s]" />
+    </div>
+  )
+}
+
 /**
  * Ficha sobre el mapa.
- * Móvil: hoja inferior que se desliza. Escritorio: panel lateral izquierdo de alto completo
- * (el mapa queda visible a la derecha); el contenido se recorre deslizando dentro del panel.
+ * Móvil: hoja inferior plegable (media altura ↔ casi completa). Tablet y escritorio: panel lateral izquierdo
+ * de alto completo (el mapa queda visible a la derecha); el contenido se recorre deslizando dentro del panel.
+ * `sobreBarra`: en «Mi finca» la hoja se apoya encima de la barra inferior en vez de quedar debajo de ella.
  */
-export const ANCHO_PANEL = 'lg:w-[28rem] xl:w-[30rem]'
-export const DESPUES_PANEL = 'lg:left-[30rem] xl:left-[32rem]'
+export const DESPUES_PANEL = 'md:left-[25.5rem] lg:left-[30rem] xl:left-[32rem]'
 
-export function Sheet({ title, subtitle, actions, onClose, children }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; onClose: () => void; children: ReactNode }) {
+export function Sheet({
+  title,
+  subtitle,
+  actions,
+  onClose,
+  children,
+  sobreBarra = false,
+}: {
+  title: ReactNode
+  subtitle?: ReactNode
+  actions?: ReactNode
+  onClose: () => void
+  children: ReactNode
+  sobreBarra?: boolean
+}) {
   const t = useDict().mapa
+  const p = useDict().app.potatonaut
+  const [grande, setGrande] = useState(false)
+  const { setHojaAbierta, openChat } = useUi()
+  useEffect(() => {
+    setHojaAbierta(true)
+    return () => setHojaAbierta(false)
+  }, [setHojaAbierta])
   return (
-    <aside className={`absolute inset-x-0 bottom-0 z-20 flex max-h-[78%] flex-col rounded-t-hoja bg-papel shadow-flota lg:inset-x-auto lg:top-4 lg:bottom-4 lg:left-4 lg:max-h-none lg:rounded-hoja ${ANCHO_PANEL}`}>
-      <div className="mx-auto mt-2.5 h-1.5 w-12 rounded-full bg-borde lg:hidden" aria-hidden />
-      <header className="px-5 pt-3 pb-3 lg:px-6 lg:pt-6">
-        <div className="flex items-start gap-3">
+    <aside
+      data-hoja
+      className={`absolute inset-x-0 bottom-0 z-20 flex flex-col rounded-t-hoja bg-papel shadow-flota transition-[max-height,height] duration-300 ${
+        grande ? 'h-[92%] max-h-[92%]' : 'max-h-[55%]'
+      } ${sobreBarra ? 'max-lg:bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:max-lg:bottom-[calc(5.25rem+env(safe-area-inset-bottom))]' : ''} md:inset-x-auto md:top-3 md:left-3 md:h-auto md:max-h-none md:w-[24rem] md:rounded-hoja lg:top-4 lg:bottom-4 lg:left-4 lg:w-[28rem] xl:w-[30rem] ${
+        sobreBarra ? '' : 'md:bottom-3'
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => setGrande((v) => !v)}
+        aria-expanded={grande}
+        aria-label={grande ? t.collapse : t.expand}
+        className="mx-auto flex items-center gap-1 rounded-full px-4 pt-2 pb-1 text-gris md:hidden"
+      >
+        <span className="h-1.5 w-10 rounded-full bg-borde" aria-hidden />
+        {grande ? <CaretDown size={14} weight="bold" aria-hidden /> : <CaretUp size={14} weight="bold" aria-hidden />}
+      </button>
+      <header className="px-5 pt-1 pb-3 md:pt-5 lg:px-6 lg:pt-6">
+        <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-2xl leading-tight lg:text-3xl">{title}</h2>
             {subtitle && <div className="mt-1 text-sm text-gris">{subtitle}</div>}
           </div>
+          {/* En el teléfono el botón flotante se oculta con la ficha abierta: Potatonaut sigue a mano aquí. */}
+          <button
+            type="button"
+            onClick={openChat}
+            aria-label={p.open}
+            className="grid size-10 shrink-0 place-items-center rounded-full bg-niebla md:hidden"
+          >
+            <img src="/brand/potatonaut-128.webp" alt="" className="h-7 w-auto" />
+          </button>
           <button onClick={onClose} aria-label={t.close} className="grid size-10 shrink-0 place-items-center rounded-full bg-niebla text-bosque">
             <X size={20} weight="bold" />
           </button>
         </div>
         {actions && <div className="mt-3">{actions}</div>}
       </header>
-      <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-28 [scrollbar-width:thin] lg:px-6 lg:pb-6">{children}</div>
+      <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-6 [scrollbar-width:thin] lg:px-6">{children}</div>
     </aside>
   )
 }

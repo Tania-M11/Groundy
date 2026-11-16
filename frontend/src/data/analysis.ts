@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { create } from 'zustand'
 import { analizarArea, analizarPunto, unificar, type Analisis, type ApiError, type AreaResp, type PuntoResp } from '../lib/api'
 import { claveArea, clavePunto, db } from './db'
@@ -15,32 +15,45 @@ const useJobs = create<{ jobs: Record<string, Estado>; set: (k: string, e: Estad
 
 const enVuelo = new Map<string, Promise<unknown>>()
 
-async function obtener<T extends PuntoResp | AreaResp>(
-  clave: string,
-  tipo: 'punto' | 'area',
-  pedir: () => Promise<T>,
-  forzar = false,
-): Promise<T> {
-  if (!forzar) {
-    const local = await db.analisis.get(clave)
-    if (local) return local.datos as T
-  }
+const UN_DIA_MS = 24 * 60 * 60 * 1000
+
+/**
+ * ¿Hay que renovar un análisis guardado? Se usa la vigencia que fija la API (meta.vigencia_hasta).
+ * Si no trae vigencia (el servidor no lo guardó en su caché, p. ej. por datos incompletos), se renueva al día siguiente.
+ */
+function vencido(datos: PuntoResp | AreaResp, guardadoEn: string) {
+  const vig = datos.meta?.vigencia_hasta
+  if (vig) return Date.parse(vig) < Date.now()
+  return Date.now() - Date.parse(guardadoEn) > UN_DIA_MS
+}
+
+function pedirYGuardar<T extends PuntoResp | AreaResp>(clave: string, tipo: 'punto' | 'area', pedir: () => Promise<T>, silencioso: boolean): Promise<T> {
   if (enVuelo.has(clave)) return enVuelo.get(clave) as Promise<T>
   const setJob = useJobs.getState().set
-  setJob(clave, { cargando: true, inicio: Date.now() })
+  if (!silencioso) setJob(clave, { cargando: true, inicio: Date.now() })
   const p = pedir()
     .then(async (datos) => {
       await db.analisis.put({ clave, tipo, datos, guardadoEn: new Date().toISOString() })
-      setJob(clave, { cargando: false })
+      if (!silencioso) setJob(clave, { cargando: false })
       return datos
     })
     .catch((e: ApiError) => {
-      setJob(clave, { cargando: false, error: e.kind ?? 'red' })
+      if (!silencioso) setJob(clave, { cargando: false, error: e.kind ?? 'red' })
       throw e
     })
     .finally(() => enVuelo.delete(clave))
   enVuelo.set(clave, p)
   return p
+}
+
+async function obtener<T extends PuntoResp | AreaResp>(clave: string, tipo: 'punto' | 'area', pedir: () => Promise<T>): Promise<T> {
+  const local = await db.analisis.get(clave)
+  if (local) {
+    // Se muestra lo guardado al instante (también sin conexión) y, si venció, se renueva en segundo plano.
+    if (navigator.onLine && vencido(local.datos, local.guardadoEn)) pedirYGuardar(clave, tipo, pedir, true).catch(() => undefined)
+    return local.datos as T
+  }
+  return pedirYGuardar(clave, tipo, pedir, false)
 }
 
 export type Objetivo = { tipo: 'punto'; centro: LonLat } | { tipo: 'area'; centro: LonLat; anillo: LonLat[] }
@@ -58,14 +71,17 @@ export function useAnalisis(obj: Objetivo | null) {
   const jP = jobs[kP]
   const jA = kA ? jobs[kA] : undefined
 
+  const claves = useRef('')
   useEffect(() => {
     if (!obj) return
     let vivo = true
-    setDatos(null)
+    // Al cambiar de lugar se limpia; en un reintento se conserva lo que ya llegó (p. ej. el punto).
+    if (claves.current !== kP + '|' + kA) setDatos(null)
+    claves.current = kP + '|' + kA
     const [lon, lat] = obj.centro
-    const forzar = intento > 0
-    const pP = obtener(kP, 'punto', () => analizarPunto(lat, lon), forzar)
-    const pA = obj.tipo === 'area' ? obtener(kA, 'area', () => analizarArea(obj.anillo), forzar).catch(() => undefined) : Promise.resolve(undefined)
+    // Solo se vuelve a pedir lo que no está guardado: en un reintento, lo que ya llegó sale del dispositivo.
+    const pP = obtener(kP, 'punto', () => analizarPunto(lat, lon))
+    const pA = obj.tipo === 'area' ? obtener(kA, 'area', () => analizarArea(obj.anillo)).catch(() => undefined) : Promise.resolve(undefined)
     pP.then(async (p) => {
       if (!vivo) return
       setDatos(unificar(p)) // mostrar el punto en cuanto llegue
@@ -84,6 +100,8 @@ export function useAnalisis(obj: Objetivo | null) {
     cargandoArea: !!jA?.cargando,
     inicio: jP?.inicio ?? jA?.inicio,
     error: !datos ? jP?.error : undefined,
+    // El polígono puede fallar aunque el punto haya llegado: se informa aparte para no ocultarlo.
+    errorArea: !datos?.terreno && !jA?.cargando ? jA?.error : undefined,
     reintentar: () => setIntento((i) => i + 1),
   }
 }

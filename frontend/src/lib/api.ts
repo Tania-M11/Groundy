@@ -53,14 +53,26 @@ export type Cultivo = { id: string; name_es: string; role: string; family: strin
 
 /* ───────── Errores con significado para la interfaz ───────── */
 export class ApiError extends Error {
-  kind: 'entrada' | 'servicio' | 'motor' | 'red' | 'tiempo'
+  kind: 'entrada' | 'servicio' | 'motor' | 'red' | 'tiempo' | 'pasarela'
   constructor(kind: ApiError['kind'], message: string) {
     super(message)
     this.kind = kind
   }
 }
 
-async function post<T>(path: string, body: unknown, timeoutMs = 240_000): Promise<T> {
+/**
+ * Una consulta nueva tarda ~80–110 s. El túnel de Cloudflare corta a los 100 s (error 524, sin cabeceras CORS:
+ * el navegador lo ve como fallo de red), pero el backend sigue calculando y guarda el resultado en su caché.
+ * Por eso, ante un corte, se reintenta: el reintento espera al cálculo en curso (key_lock) y recibe la caché.
+ */
+const INTENTOS = 3
+const TIMEOUT_INTENTO_MS = 150_000
+const ESPERA_REINTENTO_MS = [0, 3_000, 8_000]
+const REINTENTABLES = new Set<ApiError['kind']>(['red', 'tiempo', 'servicio', 'pasarela'])
+
+const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+async function postUnaVez<T>(path: string, body: unknown, timeoutMs: number): Promise<T> {
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
@@ -72,6 +84,8 @@ async function post<T>(path: string, body: unknown, timeoutMs = 240_000): Promis
     })
     if (r.status === 422) throw new ApiError('entrada', 'invalid input')
     if (r.status === 503) throw new ApiError('servicio', 'data service unavailable')
+    // 502/504/524: la pasarela (Cloudflare) cortó; el motor probablemente sigue trabajando.
+    if (r.status === 502 || r.status === 504 || r.status === 524) throw new ApiError('pasarela', `gateway ${r.status}`)
     if (!r.ok) throw new ApiError('motor', `engine error ${r.status}`)
     return (await r.json()) as T
   } catch (e) {
@@ -81,6 +95,23 @@ async function post<T>(path: string, body: unknown, timeoutMs = 240_000): Promis
   } finally {
     clearTimeout(t)
   }
+}
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  let ultimo: ApiError = new ApiError('red', 'network error')
+  for (let i = 0; i < INTENTOS; i++) {
+    // Sin conexión no tiene sentido insistir: se informa de inmediato.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new ApiError('red', 'offline')
+    if (ESPERA_REINTENTO_MS[i]) await dormir(ESPERA_REINTENTO_MS[i])
+    try {
+      return await postUnaVez<T>(path, body, TIMEOUT_INTENTO_MS)
+    } catch (e) {
+      ultimo = e as ApiError
+      if (!REINTENTABLES.has(ultimo.kind)) throw ultimo
+    }
+  }
+  // Tras agotar los intentos, un corte de pasarela se presenta como «tardó demasiado».
+  throw ultimo.kind === 'pasarela' ? new ApiError('tiempo', ultimo.message) : ultimo
 }
 
 export const analizarPunto = (lat: number, lon: number) =>
@@ -93,7 +124,10 @@ export const analizarArea = (coords: [number, number][]) =>
 let cultivosCache: Promise<Cultivo[]> | null = null
 export function getCultivos(): Promise<Cultivo[]> {
   cultivosCache ??= fetch(`${API_URL}/cultivos`)
-    .then((r) => r.json())
+    .then((r) => {
+      if (!r.ok) throw new ApiError('motor', `cultivos ${r.status}`)
+      return r.json()
+    })
     .then((d: { cultivos: Cultivo[] }) => d.cultivos)
     .catch((e) => {
       cultivosCache = null
