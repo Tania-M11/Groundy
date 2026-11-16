@@ -1,39 +1,28 @@
-# --- Entornos y cache ---
+
 .venv/
 **/__pycache__/
 *.pyc
 **/.ipynb_checkpoints/
 
-# --- Credenciales y secretos (NUNCA al repositorio) ---
 **/secrets/
 **/.env
 .env
 .env.*
 !**/.env.example
 
-# --- Datos pesados (solo se versiona crop_requirements.csv) ---
 *.csv
 !backend/data/crop_requirements.csv
 
-# --- Artefactos de despliegue ---
 **/groundy_deploy.tar.gz
 groundy_deploy.tar.gz
 
-# --- Frontend (web) ---
 node_modules/
 dist/
 *.log
 .DS_Store
 .idea/
-# Capturas de referencia (contienen datos del teléfono); no se publican.
 inspiracion diseño/
-
-# venv con cualquier nombre (no solo .venv)
 **/venv/
-
-# respaldos locales y artefactos de empaquetado
 *.bak
 *.zip
-
-# cualquier entorno virtual (venv, venv_temp, etc.)
 **/venv*/
