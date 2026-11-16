@@ -85,24 +85,6 @@ export const PERSONAJE: Record<string, { k: AvatarKey; fondo: Fondo } | undefine
   cosecha: { k: 'granjera', fondo: 'hoja' },
 }
 
-/** Fila de personajes como en la portada de Flashly. */
-export function FilaAvatares({ className = '' }: { className?: string }) {
-  const fila: [AvatarKey, Fondo, string][] = [
-    ['abuelita', 'niebla', 'size-14 translate-y-3'],
-    ['regadera', 'agua', 'size-16'],
-    ['potatonaut', 'casco', 'size-20 -translate-y-1'],
-    ['granjera', 'brote', 'size-16'],
-    ['abuelo', 'hoja', 'size-14 translate-y-3'],
-  ]
-  return (
-    <div className={`flex items-center ${className}`} aria-hidden>
-      {fila.map(([k, f, c]) => (
-        <Avatar key={k} k={k} fondo={f} className={`${c} -ml-2 ring-4 ring-crema first:ml-0`} />
-      ))}
-    </div>
-  )
-}
-
 /** Un personaje de cuerpo entero sobre una mancha de color (lado derecho de los encabezados en escritorio). */
 export function Escena({ k = 'regadera', className = '' }: { k?: AvatarKey; className?: string }) {
   return (

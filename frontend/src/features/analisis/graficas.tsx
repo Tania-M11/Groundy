@@ -341,22 +341,6 @@ export function Rango({ min, max, media, formato, etiquetaMedia }: { min: number
   )
 }
 
-/** Calendario de 12 meses con el mejor mes de siembra marcado. */
-export function Calendario({ meses, mejor }: { meses: string[]; mejor: number }) {
-  return (
-    <div className="flex gap-0.5" aria-hidden>
-      {meses.map((m, i) => (
-        <span
-          key={i}
-          className={`grid h-5 flex-1 place-items-center rounded text-[0.6rem] font-bold ${i === mejor ? 'bg-pradera-osc text-crema' : 'bg-niebla text-gris'}`}
-        >
-          {m}
-        </span>
-      ))}
-    </div>
-  )
-}
-
 /** Escala logarítmica de resolución: qué tan de cerca mira cada fuente (10 m → 55 km). */
 export function EscalaResolucion({
   filas,

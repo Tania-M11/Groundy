@@ -11,8 +11,6 @@ import {
   Cpu,
   DeviceMobile,
   ArrowRight,
-  X,
-  ListMagnifyingGlass,
 } from '@phosphor-icons/react'
 import { useDict } from '../../i18n/useDict'
 import type { ClaveEscala } from './MapaEscala'
@@ -170,7 +168,6 @@ export function ScaleLens() {
             </p>
             <p className="mt-1 text-crema/85">{info.text}</p>
           </div>
-          <EspecificacionesFuentes />
         </div>
 
         <figure className="w-full">
@@ -184,184 +181,6 @@ export function ScaleLens() {
           <figcaption className="mt-3 text-sm text-crema/70">{d.scale.note}</figcaption>
         </figure>
       </div>
-    </section>
-  )
-}
-
-/* ───────────── Datos NASA ───────────── */
-// Color por lo que mide cada fuente (la identidad también va escrita: nunca solo el color).
-const COLOR_CAT: Record<string, string> = {
-  clima: '#1D6F84',
-  lluvia: '#3C9CB4',
-  verdor: '#7AB22A',
-  calor: '#E49C54',
-  humedad: '#0E3B23',
-  relieve: '#9A5A1C',
-}
-const L_MIN = Math.log10(5)
-const L_MAX = Math.log10(100_000)
-const posRes = (m: number) => ((Math.log10(m) - L_MIN) / (L_MAX - L_MIN)) * 100
-/** «0,5° × 0,625° (~55 × 69 km)» → «~55 km»; el resto queda igual. */
-const resCorta = (r: string) => {
-  const m = /\(~?([\d.,]+)[^)]*?(km|m)\)/.exec(r)
-  return m ? `~${m[1]} ${m[2]}` : r
-}
-
-/** Botón de la lupa de escala que abre, en una ventana aparte, el detalle técnico de las fuentes (antes iba en el inicio). */
-function EspecificacionesFuentes() {
-  const d = useDict()
-  const dlg = useRef<HTMLDialogElement>(null)
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => dlg.current?.showModal()}
-        className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-3 font-bold text-crema transition hover:bg-white/20"
-      >
-        <ListMagnifyingGlass size={20} weight="bold" aria-hidden />
-        {d.data.open}
-      </button>
-      <dialog
-        ref={dlg}
-        onClick={(e) => e.target === dlg.current && dlg.current?.close()}
-        className="m-auto max-h-[90svh] w-[min(72rem,calc(100%-1.5rem))] overflow-y-auto overscroll-contain rounded-hoja bg-crema p-5 text-tinta shadow-flota backdrop:bg-bosque/60 md:p-10"
-      >
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => dlg.current?.close()}
-            aria-label={d.mapa.close}
-            className="grid size-11 place-items-center rounded-full bg-niebla text-bosque"
-          >
-            <X size={20} weight="bold" />
-          </button>
-        </div>
-        <DataSources />
-      </dialog>
-    </>
-  )
-}
-
-function DataSources() {
-  const d = useDict()
-  const t = d.data
-  const [volteada, setVolteada] = useState<string | null>(null)
-  const fuentes = [...t.rows].sort((a, b) => a.metros - b.metros)
-  const parcela = posRes(100)
-
-  return (
-    <section>
-      <h2 className="max-w-2xl text-3xl md:text-[2.75rem]">{t.title}</h2>
-      <p className="mt-4 max-w-2xl text-lg text-gris">{t.lead}</p>
-
-      {/* Regla de distancias: dónde «mira» cada satélite, frente al tamaño de una parcela */}
-      <div className="mt-10 rounded-hoja bg-papel p-6 shadow-suave md:p-8">
-        <h3 className="font-sans text-xl font-bold text-tinta">{t.scaleTitle}</h3>
-        <p className="mt-1 text-gris">{t.scaleLead}</p>
-
-        {/* Escritorio: regla horizontal */}
-        <div className="relative mt-8 hidden h-72 md:block" role="img" aria-label={fuentes.map((f) => `${f.source}: ${f.res}`).join(', ')}>
-          <div className="absolute inset-y-0 left-0 rounded-l-[1.25rem] bg-brote" style={{ width: `${parcela}%` }} />
-          <div className="absolute inset-y-0 right-0 rounded-r-[1.25rem] bg-agua" style={{ left: `${parcela}%` }} />
-          <span className="absolute top-3 left-4 text-sm font-bold text-pradera-osc">← {t.near}</span>
-          <span className="absolute top-3 right-4 text-sm font-bold text-cielo-osc">{t.far} →</span>
-          {/* Eje */}
-          <div className="absolute inset-x-0 top-1/2 h-0.5 bg-gris/30" />
-          {[10, 100, 1000, 10000, 100000].map((m) => (
-            <span
-              key={m}
-              className={`absolute bottom-2 text-xs font-semibold whitespace-nowrap text-gris ${m === 100000 ? '-translate-x-[110%]' : '-translate-x-1/2'}`}
-              style={{ left: `${posRes(m)}%` }}
-            >
-              {m >= 1000 ? `${m / 1000} km` : `${m} m`}
-            </span>
-          ))}
-          {/* Tamaño de una parcela */}
-          <div className="absolute inset-y-6 border-l-2 border-dashed border-bosque/50" style={{ left: `${parcela}%` }} />
-          <span className="absolute bottom-7 ml-2 rounded-full bg-papel px-2.5 py-0.5 text-xs font-bold text-bosque shadow-suave" style={{ left: `${parcela}%` }}>
-            {t.plotMark}
-          </span>
-          {/* Fuentes */}
-          {fuentes.map((f, i) => {
-            const x = posRes(f.metros)
-            const arriba = i % 2 === 0
-            const alinear = x > 85 ? '-translate-x-full' : x < 10 ? '' : '-translate-x-1/2'
-            return (
-              <div key={f.source} className="absolute top-1/2" style={{ left: `${x}%` }}>
-                <span className="absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full ring-4 ring-papel" style={{ background: COLOR_CAT[f.cat] }} />
-                <span className={`absolute w-px bg-gris/40 ${arriba ? 'bottom-2 h-9' : 'top-2 h-9'}`} />
-                <span
-                  className={`absolute rounded-2xl bg-papel px-3 py-1.5 whitespace-nowrap shadow-suave ${alinear} ${arriba ? 'bottom-11' : 'top-11'}`}
-                >
-                  <span className="block text-sm font-bold text-tinta">{f.source}</span>
-                  <span className="block text-xs text-gris">
-                    {t.cats[f.cat]} · <span className="font-bold text-tinta">{resCorta(f.res)}</span>
-                  </span>
-                </span>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Móvil: barras en la misma escala */}
-        <ul className="mt-6 space-y-3 md:hidden">
-          {fuentes.map((f) => (
-            <li key={f.source}>
-              <div className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="font-bold text-tinta">{f.source}</span>
-                <span className="font-semibold text-tinta">{resCorta(f.res)}</span>
-              </div>
-              <div className="mt-1 h-2.5 rounded-full bg-niebla">
-                <div className="h-full rounded-full" style={{ width: `${Math.max(6, posRes(f.metros))}%`, background: COLOR_CAT[f.cat] }} />
-              </div>
-            </li>
-          ))}
-          <li className="flex justify-between pt-1 text-xs font-bold">
-            <span className="text-pradera-osc">← {t.near}</span>
-            <span className="text-cielo-osc">{t.far} →</span>
-          </li>
-        </ul>
-      </div>
-
-      {/* Tarjetas cortas; al tocar, se voltean y cuentan lo que esa fuente no puede ver */}
-      <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {t.rows.map((r) => {
-          const vuelta = volteada === r.source
-          return (
-            <li key={r.source}>
-              <button
-                type="button"
-                onClick={() => setVolteada(vuelta ? null : r.source)}
-                aria-expanded={vuelta}
-                className={`flex h-full min-h-44 w-full flex-col rounded-tarjeta p-4 text-left shadow-suave transition hover:-translate-y-0.5 sm:min-h-48 sm:p-5 ${vuelta ? 'bg-bosque text-crema' : 'bg-papel'}`}
-              >
-                {vuelta ? (
-                  <>
-                    <span className="text-xs font-bold tracking-wide text-casco uppercase">{t.cannotTitle}</span>
-                    <span className="mt-2 leading-snug font-semibold sm:text-lg">{r.cannot}</span>
-                    <span className="mt-auto pt-4 text-sm font-bold text-casco">← {t.back}</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="flex items-center gap-2 text-xs font-bold tracking-wide text-gris uppercase">
-                      <span className="size-2.5 rounded-full" style={{ background: COLOR_CAT[r.cat] }} aria-hidden />
-                      {t.cats[r.cat]}
-                    </span>
-                    <span className="mt-3 font-display text-xl leading-tight text-bosque sm:text-2xl">{r.source}</span>
-                    <span className="mt-1 font-semibold text-tinta">{r.short}</span>
-                    {'partner' in r && r.partner && <span className="mt-1 text-xs text-gris">{t.partner}</span>}
-                    <span className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-4">
-                      <span className="rounded-full bg-niebla px-3 py-1 text-sm font-bold whitespace-nowrap text-bosque">{resCorta(r.res)}</span>
-                      <span className="text-sm font-bold text-cielo-osc">{t.cannotBtn}</span>
-                    </span>
-                  </>
-                )}
-              </button>
-            </li>
-          )
-        })}
-        <li className="col-span-2 flex flex-col justify-end rounded-tarjeta bg-niebla p-5 text-sm text-tinta sm:col-span-1 lg:min-h-48">{t.foot}</li>
-      </ul>
     </section>
   )
 }
