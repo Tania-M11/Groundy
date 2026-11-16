@@ -28,7 +28,7 @@ The logo was subsequently incorporated into the application's visual identity an
 The following materials were provided to Claude Code as reference inputs for the software evaluation and interface refinement process:
 
 - **UI/UX design references (Canva):** https://canva.link/8wb20sqmm4y8sa8
-- **Technical planning and functional specifications (Microsoft Word):** [Insert online Word document link]
+- **Technical planning and functional specifications (Microsoft Word):** https://1drv.ms/w/c/de193de5b515ddda/IQAkyoE6iInuRaVxFGRh3EilAck7HhvbffJFX7xxuYggsvk?e=fBz826
 
 ## 3. AI-assisted software evaluation and interface refinement
 
