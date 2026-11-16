@@ -14,14 +14,10 @@ export const es: Dict = {
     home: 'Inicio de Groundy',
   },
   hero: {
-    badge: 'NASA Space Apps 2026 · Field Shift',
     title: 'Tu finca, vista desde el espacio.',
-    lead: 'Groundy lleva los datos satelitales y climáticos de la NASA hasta tu parcela, guarda la historia de cada temporada que siembras y muestra de dónde sale cada número.',
+    lead: 'Groundy lleva los datos satelitales y climáticos de la NASA a tu parcela, guarda cada temporada que siembras y te acompaña con Potatonaut, tu asistente con IA.',
     cta1: 'Entrar a mi finca',
     cta2: 'Explorar un punto',
-    aiNote: 'Ilustración generada con IA',
-    pause: 'Pausar el video de fondo',
-    play: 'Reproducir el video de fondo',
   },
   challenge: {
     title: 'El agricultor lee el cielo. Los datos del espacio casi nunca llegan al suelo.',

@@ -14,14 +14,10 @@ export const en = {
     home: 'Groundy home',
   },
   hero: {
-    badge: 'NASA Space Apps 2026 · Field Shift',
     title: 'Your farm, seen from space.',
-    lead: 'Groundy brings NASA satellite and climate data down to your plot, keeps the story of every season you farm, and shows where each number comes from.',
+    lead: 'Groundy brings NASA satellite and climate data to your plot, keeps every season you farm and backs you up with Potatonaut, your AI assistant.',
     cta1: 'Enter my farm',
     cta2: 'Explore any point',
-    aiNote: 'AI-generated illustration',
-    pause: 'Pause background video',
-    play: 'Play background video',
   },
   challenge: {
     title: 'Farmers read the sky. Space data rarely reaches the ground.',
