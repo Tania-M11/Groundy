@@ -10,6 +10,7 @@ so we declare them here and label them on the site with the note **“AI-generat
 |---|---|---|
 | Potatonaut (potato astronaut mascot) | `frontend/assets-src/Patata astronauta kawaii en 3D.png` → `frontend/public/brand/potatonaut-*.webp` | Assistant avatar, floating button, empty states |
 | Farmer character | `frontend/assets-src/Granjero abuelo con rastrillo.png` → `frontend/public/brand/granjero-*.webp` | Landing and onboarding |
+| Farm characters (grandmother gardener, farmer with basket, farmer with bucket, farmer with watering can) | `frontend/assets-src/Abuelita jardinera…png`, `Granjera sonriente…png`, `Granjero sonriente con cubeta…png`, `Granjero sonriente con regadera…png` → `frontend/public/brand/avatares/*.webp` (full body and face crops) | Crops, activity types, timeline, empty states |
 | Hero video (Potatonaut on a hill) | `frontend/assets-src/hero.mp4` → `frontend/public/media/hero-*.mp4` | Landing hero |
 
 No NASA logos or official NASA graphics were generated or altered with AI.

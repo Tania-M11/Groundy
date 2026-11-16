@@ -1,10 +1,20 @@
 import { createBrowserRouter, RouterProvider, useLocation } from 'react-router'
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import LandingPage from './features/landing/LandingPage'
 import ComingSoonPage from './features/landing/ComingSoonPage'
 import EstiloPage from './features/estilo/EstiloPage'
 import FarmLayout from './features/finca/FarmLayout'
-import { HomePage, MapPage, CropsPage, HistoryPage, ProfilePage } from './features/finca/pages'
+import { HistoryPage, ProfilePage } from './features/finca/pages'
+import HomePage from './features/inicio/HomePage'
+import CropsPage from './features/cultivos/CropsPage'
+import CycleDetailPage from './features/cultivos/CycleDetailPage'
+
+// El mapa (MapLibre, Terra Draw) es la parte más pesada: se descarga solo al abrir Mapa o Explorar.
+const FarmMapPage = lazy(() => import('./features/mapa/FarmMapPage'))
+const ExplorePage = lazy(() => import('./features/mapa/ExplorePage'))
+const cargando = (el: React.ReactNode) => (
+  <Suspense fallback={<div className="grid h-full min-h-[60svh] place-items-center"><img src="/brand/potatonaut-128.webp" alt="" className="h-16 animate-bounce" /></div>}>{el}</Suspense>
+)
 
 /** Al navegar a una ruta con #ancla, desplaza hasta la sección; si no, sube al inicio. */
 function ScrollManager({ children }: { children: React.ReactNode }) {
@@ -29,14 +39,14 @@ const router = createBrowserRouter([
     element: conScroll(<FarmLayout />),
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'mapa', element: <MapPage /> },
+      { path: 'mapa', element: cargando(<FarmMapPage />) },
       { path: 'cultivos', element: <CropsPage /> },
+      { path: 'cultivos/:id', element: <CycleDetailPage /> },
       { path: 'historial', element: <HistoryPage /> },
       { path: 'perfil', element: <ProfilePage /> },
     ],
   },
-  // Pendientes: Explorar (F6) y Datos y métodos (F7).
-  { path: '/explorar', element: conScroll(<ComingSoonPage />) },
+  { path: '/explorar', element: conScroll(cargando(<ExplorePage />)) },
   { path: '*', element: conScroll(<ComingSoonPage />) },
 ])
 

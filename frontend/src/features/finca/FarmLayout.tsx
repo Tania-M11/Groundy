@@ -24,7 +24,15 @@ export default function FarmLayout() {
   const section = sectionFromPath(useLocation().pathname)
 
   return (
-    <div className="min-h-[100svh] bg-crema lg:grid lg:grid-cols-[15.5rem_1fr]">
+    <div className="relative isolate min-h-[100svh] bg-crema lg:grid lg:grid-cols-[15.5rem_1fr]">
+      {/* Manchas pastel de fondo (estilo Flashly); el mapa ocupa toda la pantalla y no las lleva. */}
+      {section !== 'map' && (
+        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute -top-44 -left-36 size-[32rem] rounded-full bg-niebla" />
+          <div className="absolute top-1/3 -right-48 size-[30rem] rounded-full bg-agua" />
+          <div className="absolute -bottom-56 left-1/4 size-[32rem] rounded-full bg-brote" />
+        </div>
+      )}
       {/* Riel lateral (escritorio) */}
       <aside className="sticky top-0 hidden h-[100svh] flex-col border-r border-borde bg-papel px-4 py-7 lg:flex">
         <Link to="/" aria-label={d.nav.site} className="px-3">
@@ -108,9 +116,16 @@ export default function FarmLayout() {
           </div>
         </header>
 
-        <main className="flex-1 px-5 pt-2 pb-36 lg:px-10 lg:pb-16">
-          <Outlet />
-        </main>
+        {section === 'map' ? (
+          // El mapa ocupa todo el alto disponible; la barra inferior móvil flota encima.
+          <main className="relative h-[calc(100svh-4rem)] lg:h-[calc(100svh-5rem)]">
+            <Outlet />
+          </main>
+        ) : (
+          <main className="flex-1 px-5 pt-2 pb-36 lg:px-10 lg:pb-16">
+            <Outlet />
+          </main>
+        )}
       </div>
 
       {/* Barra inferior (móvil) */}

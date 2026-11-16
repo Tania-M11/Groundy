@@ -19,6 +19,10 @@
   --color-papel: #ffffff;
   --color-casco: #cfe8f2;
   --color-niebla: #e8f3ee;
+  /* Verdes claros y azules pastel para manchas y fondos de personajes: solo rellenos, nunca texto. */
+  --color-brote: #e2f2d6;
+  --color-hoja: #cfe8bd;
+  --color-agua: #e1f0f8;
 
   --color-cielo: #3c9cb4;
   --color-cielo-osc: #1d6f84;

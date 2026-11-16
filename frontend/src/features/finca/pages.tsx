@@ -1,22 +1,29 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { Link } from 'react-router'
-import { Plus, Translate, HardDrives, ArrowSquareOut } from '@phosphor-icons/react'
+import { Translate, HardDrives, ArrowSquareOut } from '@phosphor-icons/react'
 import { useDict } from '../../i18n/useDict'
 import { toggleLanguage } from '../../i18n'
+import { borrarDatosLocales, db } from '../../data/db'
+import { BOTON, BOTON_2, Escena, Linea, TarjetaClara } from '../cultivos/ui'
+import { lineaDeTiempo } from '../../data/registros'
 
 // Pantallas de F2: estructura y estados vacíos. Cada una se llena en su paso:
 // Mapa (F4), Cultivos (F5), análisis y ficha (F6–F7), Inicio e Historial (F8).
 
-function SectionHeader({ title, lead }: { title: string; lead: string }) {
+export function SectionHeader({ title, lead }: { title: string; lead: string }) {
   return (
-    <div className="max-w-2xl pt-4 pb-8 lg:pt-6">
-      <h1 className="text-4xl lg:text-5xl">{title}</h1>
-      <p className="mt-3 text-lg text-gris">{lead}</p>
+    <div className="grid items-center gap-8 pt-4 pb-10 lg:grid-cols-[1.15fr_1fr] lg:pt-8">
+      <div>
+        <h1 className="text-4xl leading-tight lg:text-6xl">{title}</h1>
+        <p className="mt-3 max-w-xl text-lg text-gris">{lead}</p>
+      </div>
+      <Escena className="hidden lg:block" />
     </div>
   )
 }
 
-function EmptyState({
+export function EmptyState({
   image,
   title,
   text,
@@ -29,66 +36,28 @@ function EmptyState({
   cta?: { label: string; to: string }
   soon?: string
 }) {
-  const src = image === 'granjero' ? '/brand/granjero-360.webp' : '/brand/potatonaut-256.webp'
   return (
-    <div className="relative overflow-hidden rounded-hoja bg-papel p-7 shadow-suave sm:flex sm:items-center sm:gap-8 lg:p-10">
-      <div aria-hidden className="absolute -right-20 -bottom-24 size-64 rounded-full bg-niebla" />
-      <img src={src} alt="" className="relative mx-auto h-40 w-auto sm:mx-0 lg:h-48" />
-      <div className="relative mt-6 sm:mt-0">
-        {soon && (
-          <span className="inline-block rounded-full bg-papa-suave px-3 py-1 text-xs font-bold text-papa-osc">{soon}</span>
-        )}
-        <h2 className="mt-2 text-2xl lg:text-3xl">{title}</h2>
-        <p className="mt-2 max-w-lg text-gris">{text}</p>
-        {cta && (
-          <Link
-            to={cta.to}
-            className="mt-5 inline-flex items-center gap-2 rounded-full bg-bosque px-6 py-3 font-bold text-crema shadow-flota transition hover:bg-bosque-700"
-          >
-            <Plus size={18} weight="bold" aria-hidden />
-            {cta.label}
-          </Link>
-        )}
-      </div>
-    </div>
-  )
-}
-
-export function HomePage() {
-  const s = useDict().app.sections.home
-  return (
-    <>
-      <SectionHeader title={s.title} lead={s.lead} />
-      <EmptyState image="granjero" title={s.emptyTitle} text={s.emptyText} cta={{ label: s.cta, to: '/finca/cultivos' }} />
-    </>
-  )
-}
-
-export function MapPage() {
-  const a = useDict().app
-  const s = a.sections.map
-  return (
-    <>
-      <SectionHeader title={s.title} lead={s.lead} />
-      <EmptyState image="potatonaut" title={s.emptyTitle} text={s.emptyText} soon={a.soonBadge} />
-    </>
-  )
-}
-
-export function CropsPage() {
-  const a = useDict().app
-  const s = a.sections.crops
-  return (
-    <>
-      <SectionHeader title={s.title} lead={s.lead} />
-      <EmptyState image="granjero" title={s.emptyTitle} text={s.emptyText} soon={a.soonBadge} />
-    </>
+    <TarjetaClara personaje={image === 'granjero' ? 'abuelo' : 'potatonaut'} mancha={image === 'granjero' ? 'brote' : 'casco'}>
+      {soon && <span className="inline-block rounded-full bg-papa-suave px-3 py-1 text-xs font-bold text-papa-osc">{soon}</span>}
+      <h2 className="mt-2 text-3xl">{title}</h2>
+      <p className="mt-2 max-w-md text-gris">{text}</p>
+      {cta && (
+        <Link to={cta.to} className={`${BOTON} mt-6`}>
+          {cta.label}
+        </Link>
+      )}
+    </TarjetaClara>
   )
 }
 
 export function HistoryPage() {
   const s = useDict().app.sections.history
   const [tab, setTab] = useState<'farm' | 'climate'>('farm')
+  const eventos = useLiveQuery(() => db.eventos.toArray(), [])
+  const ciclos = useLiveQuery(() => db.ciclos.toArray(), [])
+  const parcelas = useLiveQuery(() => db.parcelas.toArray(), [])
+  const entradas = useMemo(() => lineaDeTiempo(ciclos ?? [], eventos ?? []), [ciclos, eventos])
+  const porParcela = useMemo(() => Object.fromEntries((parcelas ?? []).map((p) => [p.id!, p])), [parcelas])
   return (
     <>
       <SectionHeader title={s.title} lead={s.lead} />
@@ -109,7 +78,13 @@ export function HistoryPage() {
       </div>
       <div role="tabpanel">
         {tab === 'farm' ? (
-          <EmptyState image="granjero" title={s.emptyFarmTitle} text={s.emptyFarmText} />
+          entradas.length > 0 ? (
+            <div>
+              <Linea entradas={entradas} parcelas={porParcela} contexto />
+            </div>
+          ) : (
+            <EmptyState image="granjero" title={s.emptyFarmTitle} text={s.emptyFarmText} />
+          )
         ) : (
           <EmptyState image="potatonaut" title={s.emptyClimateTitle} text={s.emptyClimateText} />
         )}
@@ -122,6 +97,12 @@ export function ProfilePage() {
   const dict = useDict()
   const s = dict.app.sections.profile
   const REPO = 'https://github.com/Tania-M11/Groundy'
+  const [listo, setListo] = useState(false)
+  const borrar = async (todo: boolean) => {
+    if (!window.confirm(todo ? s.confirmAll : s.confirmCrops)) return
+    await borrarDatosLocales(todo)
+    setListo(true)
+  }
   return (
     <>
       <SectionHeader title={s.title} lead={s.lead} />
@@ -143,6 +124,19 @@ export function ProfilePage() {
             {s.storage}
           </h2>
           <p className="mt-3 text-gris">{s.storageText}</p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button type="button" onClick={() => borrar(false)} className={BOTON_2}>
+              {s.resetCrops}
+            </button>
+            <button type="button" onClick={() => borrar(true)} className="min-h-14 rounded-full px-5 font-bold text-arcilla hover:bg-arcilla-suave">
+              {s.resetAll}
+            </button>
+          </div>
+          {listo && (
+            <p className="mt-3 font-semibold text-pradera-osc" role="status">
+              {s.resetDone}
+            </p>
+          )}
         </div>
         <div className="rounded-hoja bg-papel p-7 shadow-suave lg:col-span-2">
           <h2 className="text-2xl">{s.links}</h2>
