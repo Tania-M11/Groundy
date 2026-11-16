@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Papanauta - Groundy Assistant</title>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --dark: #1B5E20;
+            --light: #E8F5E9;
+            --text: #333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Chat Container */
+        #chat-container {
+            width: 400px;
+            height: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Header */
+        .chat-header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        .chat-header .avatar {
+            font-size: 30px;
+            background: white;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .chat-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .chat-header p {
+            margin: 0;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* Messages Area */
+        #chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #fafafa;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 15px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            animation: fadeIn 0.3s ease;
+            white-space: pre-wrap;
+        }
+        .message.user {
+            background: var(--primary);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        .message.bot {
+            background: white;
+            color: var(--text);
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #eee;
+        }
+        .message.bot.loading {
+            font-style: italic;
+            color: #666;
+            background: #f0f8f1;
+            border-color: #c8e6c9;
+        }
+
+        /* Input Area */
+        .chat-input {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .chat-input input:focus {
+            border-color: var(--primary);
+        }
+        .chat-input button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.1s, background 0.2s;
+        }
+        .chat-input button:hover {
+            background: var(--dark);
+            transform: scale(1.05);
+        }
+        .chat-input button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .typing-dots {
+            display: inline-block;
+            animation: blink 1.4s infinite both;
+        }
+        @keyframes blink {
+            0% { opacity: 0.2; }
+            20% { opacity: 1; }
+            100% { opacity: 0.2; }
+        }
+        .message.rendered { white-space: normal; }
+        .message.rendered h4 { margin: 10px 0 4px; font-size: 0.98rem; color: var(--dark); }
+        .message.rendered p { margin: 6px 0; }
+        .message.rendered ul, .message.rendered ol { margin: 6px 0; padding-left: 20px; }
+        .message.rendered li { margin: 3px 0; }
+        .message.rendered hr { border: none; border-top: 1px solid #ddd; margin: 10px 0; }
+        .message.rendered strong { font-weight: 600; }
+        .message.rendered em { font-style: italic; }
+        .message.rendered code { background: #eef3ee; padding: 1px 5px; border-radius: 4px; font-size: 0.9em; }
+        .message.rendered > :first-child { margin-top: 0; }
+        .message.rendered > :last-child { margin-bottom: 0; }
+    </style>
+</head>
+<body>
+
+    <div id="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="avatar">🥔</div>
+            <div>
+                <h2>Papanauta</h2>
+                <p>Agronomic Assistant • Groundy</p>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div id="chat-messages">
+            <div class="message bot">
+                Hi! I'm Papanauta 🥔, your farming assistant connected to NASA satellites. 
+                How can I help you with your crops or your farm today?
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="Type your question here..." autocomplete="off">
+            <button id="send-btn" onclick="enviarMensaje()">➤</button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        
+        // URL DE TU API LOCAL
+        const API_URL = "http://127.0.0.1:8000/chat/papanauta";
+        
+        // Datos de la finca de prueba (Ipiales, Nariño)
+        const FARM_LAT = 0.8281;
+        const FARM_LON = -77.6422;
+        const FARM_CROP = "Papa";
+        let currentConversationId = null;
+
+        // Permite enviar con la tecla Enter
+        userInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                enviarMensaje();
+            }
+        });
+
+        async function enviarMensaje() {
+            const mensaje = userInput.value.trim();
+            if (!mensaje) return;
+
+            // 1. Mostrar mensaje del usuario
+            agregarMensaje(mensaje, 'user');
+            userInput.value = '';
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+
+            // 2. Detectar si la pregunta es sobre la finca (clima, satélites, etc.)
+            const palabrasFinca = ["weather", "rain", "rainfall", "humidity", "soil", "temperature", "climate", "farm", "field", "satellite", "nasa", "groundy", "analyze", "clima", "lluvia", "humedad", "suelo", "temperatura", "finca", "lote", "satélite", "satelite", "analiza"];
+            const esPreguntaFinca = palabrasFinca.some(palabra => mensaje.toLowerCase().includes(palabra));
+            
+            // 3. Mostrar mensaje de carga dinámico
+            const textoCargando = esPreguntaFinca 
+                ? "Connecting to NASA satellites... 🛰️ (this may take a moment, please wait)" 
+                : "Thinking... 🥔";
+
+            const loadingId = agregarMensaje(textoCargando, 'bot', true);
+
+            try {
+                // 4. Hacer la petición a FastAPI
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        message: mensaje,
+                        conversation_id: currentConversationId,
+                        farm_lat: FARM_LAT,
+                        farm_lon: FARM_LON,
+                        farm_crop: FARM_CROP
+                    })
+                });
+
+                if (!response.ok) {
+                    let detail = "";
+                    try { detail = (await response.json()).detail || ""; } catch (e) {}
+                    throw new Error("HTTP " + response.status + (detail ? ": " + detail : ""));
+                }
+
+                const data = await response.json();
+                
+                // Guardar el ID de conversación para la memoria
+                currentConversationId = data.conversation_id;
+
+                // 5. Reemplazar el cargando con la respuesta real
+                const loadingElement = document.getElementById(loadingId);
+                loadingElement.innerHTML = renderMarkdown(data.answer);
+                loadingElement.classList.add('rendered');
+                loadingElement.classList.remove('loading');
+
+            } catch (error) {
+                console.error(error);
+                const loadingElement = document.getElementById(loadingId);
+                loadingElement.innerHTML = "❌ Error: " + (error && error.message ? error.message : "could not reach the server") + "<br><small>Check that uvicorn is running on port 8000.</small>";
+                loadingElement.classList.remove('loading');
+            } finally {
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+
+        // Convierte el Markdown de la respuesta en HTML (sin librerias externas = funciona offline)
+        function renderMarkdown(src) {
+            const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const inline = s => esc(s)
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/`(.+?)`/g, '<code>$1</code>');
+            const lines = String(src).replace(/\r/g, '').split('\n');
+            let html = '', list = null;
+            const closeList = () => { if (list) { html += '</' + list + '>'; list = null; } };
+            for (const raw of lines) {
+                const line = raw.replace(/\s+$/, '');
+                if (!line.trim()) { closeList(); continue; }
+                let m;
+                if (/^\s*---+\s*$/.test(line)) { closeList(); html += '<hr>'; continue; }
+                if (m = line.match(/^\s*#{1,6}\s+(.*)$/)) { closeList(); html += '<h4>' + inline(m[1]) + '</h4>'; continue; }
+                if (m = line.match(/^\s*\d+\.\s+(.*)$/)) { if (list !== 'ol') { closeList(); list = 'ol'; html += '<ol>'; } html += '<li>' + inline(m[1]) + '</li>'; continue; }
+                if (m = line.match(/^\s*[\*\-]\s+(.*)$/)) { if (list !== 'ul') { closeList(); list = 'ul'; html += '<ul>'; } html += '<li>' + inline(m[1]) + '</li>'; continue; }
+                closeList(); html += '<p>' + inline(line.trim()) + '</p>';
+            }
+            closeList();
+            return html;
+        }
+
+        function agregarMensaje(texto, tipo, isLoading = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${tipo} ${isLoading ? 'loading' : ''}`;
+            msgDiv.innerHTML = texto;
+            
+            if (isLoading) {
+                const id = 'loading-' + Date.now();
+                msgDiv.id = id;
+                chatMessages.appendChild(msgDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                return id;
+            } else {
+                chatMessages.appendChild(msgDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -27,3 +27,13 @@ dist/
 .idea/
 # Capturas de referencia (contienen datos del teléfono); no se publican.
 inspiracion diseño/
+
+# venv con cualquier nombre (no solo .venv)
+**/venv/
+
+# respaldos locales y artefactos de empaquetado
+*.bak
+*.zip
+
+# cualquier entorno virtual (venv, venv_temp, etc.)
+**/venv*/
