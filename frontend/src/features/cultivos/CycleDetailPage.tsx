@@ -6,6 +6,7 @@ import { useDict } from '../../i18n/useDict'
 import { db, type Evento } from '../../data/db'
 import { cerrarCiclo, esActivo, hoyISO, lineaDeTiempo, marcarSembrado, useCatalogo, type Entrada } from '../../data/registros'
 import { formatArea } from '../../lib/geo'
+import { useContextoChat } from '../../app/uiStore'
 import {
   ActividadForm,
   AjusteBox,
@@ -46,6 +47,8 @@ export default function CycleDetailPage() {
   const [fechaM, setFechaM] = useState(hoyISO())
   const [motivo, setMotivo] = useState('')
   const cerrar = () => setVentana(null)
+  const pCtx = ciclo ? parcelas?.find((p) => p.id === ciclo.parcelaId) : undefined
+  useContextoChat(ciclo && pCtx ? { lat: pCtx.centroide[1], lon: pCtx.centroide[0], lugar: pCtx.nombre, cultivoId: ciclo.cultivoId } : null)
 
   if (ciclo === undefined) return null
   if (!ciclo)

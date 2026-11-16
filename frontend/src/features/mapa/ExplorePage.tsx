@@ -9,6 +9,7 @@ import { useMapa, LayerPicker, LensToggle, Sheet } from './MapWidgets'
 import { AnalysisPanel } from '../analisis/AnalysisPanel'
 import { PotatonautFab, PotatonautPanel } from '../potatonaut/Potatonaut'
 import type { LonLat } from '../../lib/geo'
+import { useContextoChat } from '../../app/uiStore'
 
 /** Explorar (público, sin cuenta): tocar el mapa o usar la ubicación → análisis del punto con su procedencia. */
 export default function ExplorePage() {
@@ -37,6 +38,7 @@ export default function ExplorePage() {
     if (punto) marker.current = potatoMarker(punto).addTo(map)
   }, [map, punto])
 
+  useContextoChat(punto ? { lat: punto[1], lon: punto[0] } : null)
   const objetivo = useMemo(() => (punto ? { tipo: 'punto' as const, centro: punto } : null), [punto])
   const estado = useAnalisis(objetivo)
 

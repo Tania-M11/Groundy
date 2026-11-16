@@ -10,6 +10,8 @@ import { Polygon as PolygonIcon, PersonSimpleWalk, Trash, ListBullets, Check, Ar
 import { useDict } from '../../i18n/useDict'
 import { db, type Parcela } from '../../data/db'
 import { useAnalisis } from '../../data/analysis'
+import { esActivo } from '../../data/registros'
+import { useContextoChat } from '../../app/uiStore'
 import { formatArea, formatLen, medir, openRing, polygonFromRing, type LonLat } from '../../lib/geo'
 import { geolocateControl, setData } from './mapCore'
 import { useMapa, LayerPicker, LensToggle, Sheet } from './MapWidgets'
@@ -190,6 +192,10 @@ export default function FarmMapPage() {
 
   const medida = useMemo(() => (pendiente ? medir(pendiente.poly) : null), [pendiente])
   const parcela = parcelas?.find((p) => p.id === sel) ?? null
+  // Potatonaut habla de la parcela abierta (y de su cultivo en curso, si lo tiene).
+  const ciclosParcela = useLiveQuery(() => (parcela?.id ? db.ciclos.where('parcelaId').equals(parcela.id).toArray() : []), [parcela?.id])
+  const cultivoActivo = ciclosParcela?.find(esActivo)?.cultivoId
+  useContextoChat(parcela ? { lat: parcela.centroide[1], lon: parcela.centroide[0], lugar: parcela.nombre, cultivoId: cultivoActivo } : null)
   const centroLente: LonLat | null = parcela ? parcela.centroide : null
 
   return (
