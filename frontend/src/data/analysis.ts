@@ -56,6 +56,17 @@ async function obtener<T extends PuntoResp | AreaResp>(clave: string, tipo: 'pun
   return pedirYGuardar(clave, tipo, pedir, false)
 }
 
+/**
+ * Adelanta el análisis de una parcela mientras el agricultor la nombra y confirma (antes de guardarla).
+ * Usa las mismas claves que la ficha (centroide de Turf y anillo abierto), así que al abrirla encuentra la consulta
+ * en curso (enVuelo) o ya guardada, y el contador de espera sigue desde que empezó aquí.
+ */
+export function adelantarAnalisis(centro: LonLat, anillo: LonLat[]) {
+  const [lon, lat] = centro
+  obtener(clavePunto(lat, lon), 'punto', () => analizarPunto(lat, lon)).catch(() => undefined)
+  obtener(claveArea(anillo), 'area', () => analizarArea(anillo)).catch(() => undefined)
+}
+
 export type Objetivo = { tipo: 'punto'; centro: LonLat } | { tipo: 'area'; centro: LonLat; anillo: LonLat[] }
 
 /**

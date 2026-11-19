@@ -9,7 +9,7 @@ import { Link } from 'react-router'
 import { Polygon as PolygonIcon, PersonSimpleWalk, Trash, ListBullets, Check, ArrowCounterClockwise, Plant } from '@phosphor-icons/react'
 import { useDict } from '../../i18n/useDict'
 import { db, type Parcela } from '../../data/db'
-import { useAnalisis } from '../../data/analysis'
+import { adelantarAnalisis, useAnalisis } from '../../data/analysis'
 import { esActivo } from '../../data/registros'
 import { useContextoChat } from '../../app/uiStore'
 import { formatArea, formatLen, medir, openRing, polygonFromRing, validarLindero, type LonLat } from '../../lib/geo'
@@ -175,6 +175,14 @@ export default function FarmMapPage() {
   // Lindero limpio (sin vértices repetidos) y revisado: lados que se cruzan, área mínima y máxima.
   const revision = useMemo(() => (pendiente ? validarLindero(pendiente.poly) : null), [pendiente])
   const medida = useMemo(() => (revision ? medir(revision.poly) : null), [revision])
+
+  // W1: el análisis arranca mientras se confirma la parcela (nombre, revisión), no después de guardarla.
+  // Espera un instante por si el agricultor corrige el lindero enseguida, para no pedir análisis de más.
+  useEffect(() => {
+    if (modo !== 'confirmar' || !revision || revision.problema || !medida) return
+    const t = setTimeout(() => adelantarAnalisis(medida.centroide, openRing(revision.poly)), 1200)
+    return () => clearTimeout(t)
+  }, [modo, revision, medida])
 
   const guardar = async () => {
     if (!pendiente || !revision || revision.problema) return
