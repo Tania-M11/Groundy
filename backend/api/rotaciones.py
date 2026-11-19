@@ -13,8 +13,9 @@ rotaciones originales del motor.
 """
 from itertools import combinations, permutations
 
-import point_engine as pe
 import rotation_score as rs
+
+from . import paralelo  # NASA POWER compartido con el punto (no se descarga otra vez)
 
 # Mismos pesos que usa el motor para comparar rotaciones.
 WEIGHTS = {"climate": 0.40, "reliability": 0.20, "family_break": 0.20,
@@ -23,7 +24,7 @@ WEIGHTS = {"climate": 0.40, "reliability": 0.20, "family_break": 0.20,
 
 def _tabla_suit(lat, lon, elev, crops):
     """Tabla de aptitud de los 42 cultivos para el sitio (via funciones del motor)."""
-    pw = pe.power_point(lat, lon)
+    pw = paralelo.power_point(lat, lon)
     clim = rs.monthly_from_power(pw, lat, elev)
     return rs.crop_table(clim, crops, pw)
 
