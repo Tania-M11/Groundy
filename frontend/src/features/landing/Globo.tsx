@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { Thermometer, Leaf, CloudRain, Cloud } from '@phosphor-icons/react'
 import { useDict } from '../../i18n/useDict'
 
 /**
@@ -34,7 +33,6 @@ const CAPAS: Record<Capa, { id: string; fecha: (anio: number) => string; barra: 
     barra: 'linear-gradient(90deg, #660077, #0001aa, #025000, #ffff03, #7a5a07, #ff0005)',
   },
 }
-const ICONOS = { temp: Thermometer, ndvi: Leaf, rain: CloudRain, clouds: Cloud }
 const ORDEN: Capa[] = ['temp', 'ndvi', 'rain', 'clouds']
 
 const wms = (capa: string, tiempo: string | null, ancho: number, formato = 'image/png') =>
@@ -279,7 +277,6 @@ export default function Globo({ cabecera }: { cabecera: ReactNode }) {
       <div className="w-full max-w-md justify-self-center lg:self-start lg:justify-self-start">
         <div role="radiogroup" aria-label={d.group} className="grid grid-cols-2 gap-2">
           {ORDEN.map((k) => {
-            const Icon = ICONOS[k]
             return (
               <button
                 key={k}
@@ -290,11 +287,10 @@ export default function Globo({ cabecera }: { cabecera: ReactNode }) {
                   if (capa === k) setEstado('listo')
                   setCapa(capa === k ? null : k)
                 }}
-                className={`flex items-center gap-2 rounded-2xl px-3.5 py-3 text-left text-sm font-bold transition ${
+                className={`flex items-center rounded-2xl px-4 py-3 text-left text-sm font-bold transition ${
                   capa === k ? 'bg-bosque text-crema shadow-flota' : 'bg-papel text-bosque shadow-suave hover:bg-niebla'
                 }`}
               >
-                <Icon size={18} weight={capa === k ? 'fill' : 'duotone'} className="shrink-0" aria-hidden />
                 {d.layers[k]}
               </button>
             )
