@@ -6,7 +6,8 @@ import { useDict } from '../../i18n/useDict'
 /**
  * Hero. En el video la cámara termina acercándose y Potatonaut ocupa el centro, así que el texto no va encima:
  * en escritorio el video ocupa la izquierda y se funde con el turquesa del cielo (token `cielo`), y el texto
- * ocupa el lado derecho de la pantalla, ancho, para que el título respire en pocas líneas.
+ * ocupa el lado derecho de la pantalla, ancho, para que el título respire en pocas líneas. El título se ajusta
+ * también al alto de la pantalla (portátiles con escala de Windows al 125–150 %), y la colina ignora los clics.
  * En móvil el texto va arriba y el video debajo. Una colina verde une ambos lados.
  * El uso de IA en las ilustraciones se declara en AI_USAGE.md.
  * Contraste: título y entrada son texto grande (≥ 19 px en negrita) blanco sobre cielo → 3,2:1 (AA texto grande).
@@ -39,10 +40,11 @@ export function Hero() {
         </video>
       </div>
 
-      {/* Texto sobre el cielo, en el lado derecho */}
-      <div className="relative order-1 w-full px-5 pt-24 md:absolute md:inset-y-0 md:right-0 md:flex md:w-[50%] md:items-center md:px-0 md:pt-16 md:pr-10 md:pb-28 lg:w-[46%] xl:pr-20">
+      {/* Texto sobre el cielo, en el lado derecho. Va en el flujo normal (no flota): si en una pantalla baja no cabe,
+          la sección crece en vez de encimarse sobre el menú o la colina. z-10: siempre por delante de la colina. */}
+      <div className="relative z-10 order-1 w-full px-5 pt-24 md:ml-auto md:flex md:min-h-[100svh] md:w-[50%] md:items-center md:px-0 md:pt-28 md:pr-10 md:pb-36 lg:w-[46%] xl:pr-20">
         <div className="hero-entrada max-w-[40rem] text-white">
-          <h1 className="text-[2.6rem] leading-[1.04] text-balance text-white sm:text-6xl lg:text-[4.25rem] xl:text-[4.75rem]">{d.hero.title}</h1>
+          <h1 className="text-[2.6rem] leading-[1.04] text-balance text-white sm:text-6xl md:text-[clamp(2.75rem,min(5.2vw,9.5svh),4.75rem)]">{d.hero.title}</h1>
           <p className="mt-6 max-w-[34rem] text-[1.2rem] leading-relaxed font-bold text-white md:text-xl">{d.hero.lead}</p>
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <Link
@@ -66,7 +68,7 @@ export function Hero() {
       </div>
 
       {/* Colinas: una verde que continúa el pasto del video y la curva crema que da paso a la página. */}
-      <svg aria-hidden className="absolute inset-x-0 bottom-0 z-0 h-20 w-full md:h-32" viewBox="0 0 1440 160" preserveAspectRatio="none">
+      <svg aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-20 w-full md:h-32" viewBox="0 0 1440 160" preserveAspectRatio="none">
         <path fill="#7AB22A" d="M0 96 C 320 58 640 44 940 56 S 1300 78 1440 34 V160 H0 Z" />
         <path fill="#FFF9F5" d="M0 128 C 260 92 540 84 790 108 S 1220 158 1440 112 V160 H0 Z" />
       </svg>
