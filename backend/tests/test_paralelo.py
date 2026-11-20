@@ -24,8 +24,8 @@ sys.modules["ee"] = mock.MagicMock()  # Earth Engine simulado (sin llave)
 import point_engine as pe  # noqa: E402
 
 ESCALA = 0.1  # 1 s real -> 0,1 s en la prueba
-# Demoras medidas en la Orange Pi (19 nov 2026): solo SMAP es lenta (35-56 s por banda); el resto tarda 1-4 s
-DEMORA = {"power": 2.4, "elev": 0.6, "modis": 3, "smap": 45, "imerg": 1.5, "zonal": 6, "s2": 20}
+# Demoras medidas en la Orange Pi (19 nov 2026): solo SMAP en vivo es lenta (35-56 s por banda); el resto tarda 0,4-4 s
+DEMORA = {"power": 2.4, "elev": 0.6, "modis": 3, "smap": 45, "imerg": 1.5, "zonal": 0.6, "s2": 1.3}
 LAT, LON = 0.86, -77.62
 COORDS = [[-77.6208, 0.8592], [-77.6192, 0.8591], [-77.6191, 0.8608], [-77.6208, 0.8608]]
 
@@ -67,6 +67,13 @@ def f_smap(band, scale, lat, lon, *a, **k):
 def f_smap_mensual(lat, lon, *a, **k):
     # paralelo._smap_mensual: las dos bandas en una sola consulta (en la Pi tarda ~21 s frente a ~56 s)
     time.sleep(21 * ESCALA)
+    v = [round(0.30 + m * 0.005, 4) for m in range(12)]
+    return list(v), list(v)
+
+
+def f_smap_precalculado(lat, lon):
+    # paralelo._smap_precalculado: lee un pixel del asset SMAP (~1 s); mismos valores que el calculo en vivo
+    time.sleep(1 * ESCALA)
     v = [round(0.30 + m * 0.005, 4) for m in range(12)]
     return list(v), list(v)
 
@@ -130,6 +137,18 @@ def main():
     import rotation_score as rs
     crops = rs.load_crops()
     ok = True
+
+    # 0. SMAP: si el asset precalculado falla, se calcula en vivo y da lo mismo
+    def _falla(lat, lon):
+        raise RuntimeError("asset no disponible")
+    with mock.patch.object(paralelo, "_smap_precalculado", _falla):
+        vivo = paralelo._capas_smap(LAT, LON)
+    with mock.patch.object(paralelo, "_smap_precalculado", f_smap_precalculado):
+        pre = paralelo._capas_smap(LAT, LON)
+    mismo = igual(vivo, pre) and vivo["sm_root"]["status"] == "ok"
+    ok &= mismo
+    print(f"0. SMAP: plan B en vivo si falla el precalculado, mismos valores: {mismo}")
+    mock.patch.object(paralelo, "_smap_precalculado", f_smap_precalculado).start()
 
     # 1. Punto
     antes, t_antes = cronometrar(lambda: pe.analizar_punto(LAT, LON, crops=crops))
